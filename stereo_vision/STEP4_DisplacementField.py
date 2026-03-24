@@ -94,8 +94,7 @@ print("done\n")
 
 ## Read the image calibration file and obtain the projection matrix.
 cv_file = cv.FileStorage()
-map_path =  f"{CF.WORKSPACE}/stereoMap.xml"
-cv_file.open(map_path, cv.FileStorage_READ)
+cv_file.open(CF.STEREP_MAP_PATH, cv.FileStorage_READ)
 Q = cv_file.getNode('Q').mat()
 
 

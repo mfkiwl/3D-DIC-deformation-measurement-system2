@@ -2,7 +2,7 @@
 import os
 import Config_user as CF_user
 cwd = os.getcwd()
-WORKSPACE = os.path.join(cwd, "Stereo_Vision")
+WORKSPACE = os.path.join(cwd, "stereo_vision")
 DLL_DIR = os.path.join(WORKSPACE, "dll")
 FUNC_DIR = os.path.join(WORKSPACE, "function")
 FUNC_ALGO_DIR = os.path.join(WORKSPACE, "function", "algorithm")
@@ -18,6 +18,7 @@ IMAGE_TARGET_IN_CAM1_DIR = os.path.join(WORKSPACE, "image", CF_user.TEST_IMG_DIR
 IMAGE_TARGET_IN_CAM2_DIR = os.path.join(WORKSPACE, "image", CF_user.TEST_IMG_DIR, "in", "cam2")
 IMAGE_TARGET_OUT_CAM1_DIR = os.path.join(WORKSPACE, "image", CF_user.TEST_IMG_DIR, "out", "cam1")
 IMAGE_TARGET_OUT_CAM2_DIR = os.path.join(WORKSPACE, "image", CF_user.TEST_IMG_DIR, "out", "cam2")
+STEREP_MAP_PATH=f"{WORKSPACE}/stereoMap.xml"
 
 
 

@@ -2,7 +2,7 @@ import cv2 as cv
 import Config as CF
 # Camera parameters to undistort and rectify images
 cv_file = cv.FileStorage()
-cv_file.open(f"{CF.WORKSPACE}/stereoMap.xml", cv.FileStorage_READ)
+cv_file.open(CF.STEREP_MAP_PATH, cv.FileStorage_READ)
 
 stereoMapL_x = cv_file.getNode('stereoMapL_x').mat()
 stereoMapL_y = cv_file.getNode('stereoMapL_y').mat()
