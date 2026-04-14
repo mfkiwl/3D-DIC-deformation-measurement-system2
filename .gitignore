@@ -7,3 +7,11 @@ __pycache__/
 # 虛擬環境
 venv/
 env/
+
+build/
+
+*.txt
+
+image
+
+*.dll
