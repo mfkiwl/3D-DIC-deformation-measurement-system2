@@ -32,8 +32,12 @@ image_Left = sorted(glob.glob(f"{CF.IMAGE_CAL_LEFT_DIR}*.jpg"))
 image_Right = sorted(glob.glob(f"{CF.IMAGE_CAL_RIGHT_DIR}*.jpg"))
 
 for imgLeft, imgRight in zip(image_Left, image_Right): # zip: 將2組array中對應的元素打包成一個位組，最後傳回一個列表。
-    imgL = cv.imread(imgLeft) # 將影像讀入儲存成array
+    imgL = cv.imread(imgLeft) # read image as array
     imgR = cv.imread(imgRight)
+    if imgL is None or imgR is None:
+        print(f"[ERROR] read image fail: {imgLeft} or {imgRight}")
+        continue
+
     grayL = cv.cvtColor(imgL, cv.COLOR_BGR2GRAY) # 轉成灰階影像
     grayR = cv.cvtColor(imgR, cv.COLOR_BGR2GRAY)
     
@@ -42,7 +46,7 @@ for imgLeft, imgRight in zip(image_Left, image_Right): # zip: 將2組array中對
     retR, cornersR = cv.findChessboardCorners(grayR, CF_user.CAL_CHESSBOARD_SIZE, None)
     
     # If found, add object points, image points (after refining them)
-    if retL and retR == True:
+    if retL and retR:
         objpoints.append(objp)
         
         cornersL = cv.cornerSubPix(grayL, cornersL, (11,11), (-1,-1), criteria)

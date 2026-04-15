@@ -11,33 +11,16 @@ int main(int argc, char *argv[]) {
 }
 
 __declspec(dllexport)
-void process_image(uint8_t *ref_img, uint8_t *cur_img, int width, int height,\
+void process_image(double *ref_img, double *cur_img, int width, int height,\
                      int population, int subset_side_len,\
-                     int *img_ref_pt, float *result){
+                     double *img_ref_pt, double *result){
     if (ref_img == NULL || cur_img == NULL) return;
     struct SYS_INFO *info = SYS_create();
     if (!info) return;
     
-    int total_pixels = width * height;
-    
-    float* ref_float = (float*)malloc(total_pixels * sizeof(float));
-    float* cur_float = (float*)malloc(total_pixels * sizeof(float));
-
-    if (!ref_float || !cur_float) {
-        free(ref_float);
-        free(cur_float);
-        if (info) SYS_clean(info);
-        return; 
-    }
-    
-    for (int i = 0; i < total_pixels; i++) {
-        ref_float[i] = (float)ref_img[i];
-        cur_float[i] = (float)cur_img[i];
-    }
-
     // initial image info
-    info->pso_ctx.img_info.ref_data         = ref_float;
-    info->pso_ctx.img_info.cur_data         = cur_float;
+    info->pso_ctx.img_info.ref_data         = ref_img;
+    info->pso_ctx.img_info.cur_data         = cur_img;
     info->pso_ctx.img_info.width            = width;
     info->pso_ctx.img_info.height           = height;
     info->pso_ctx.config.population         = population;
@@ -45,7 +28,7 @@ void process_image(uint8_t *ref_img, uint8_t *cur_img, int width, int height,\
     info->dic_ctx.img_ref_pt_pos            = img_ref_pt;
 
     // assign algo type
-    info->pso_ctx.algo_ops              = &standard_pso_algo_ops;
+    info->pso_ctx.algo_ops                  = &standard_pso_algo_ops;
 
     if (info) {
         run_PSO(info);
@@ -55,8 +38,6 @@ void process_image(uint8_t *ref_img, uint8_t *cur_img, int width, int height,\
         result[2] = info->pso_ctx.global_best.value; // coef
         SYS_clean(info);
     }
-    free(ref_float);
-    free(cur_float);
 }
 
 

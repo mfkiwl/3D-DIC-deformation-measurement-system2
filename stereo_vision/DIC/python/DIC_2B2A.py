@@ -20,7 +20,7 @@ def find_pt_2B2A(img_2A,
 
     img_aft = np.array(img_2A, dtype=np.int32)
 
-    Displacement = np.zeros((2,), dtype=np.int32) #  [y,x]
+    Displacement = np.zeros((2,), dtype=np.int32) # [y,x]
     # index、CoefValue
     CoefValue = np.zeros((2,), dtype=np.float64)
     Object_point = np.array((int(C2_B_y),int(C2_B_x)), dtype=np.int32)
@@ -31,7 +31,7 @@ def find_pt_2B2A(img_2A,
     img_aft_sub = np.zeros((Size,Size), dtype=np.int32)
 
     ## ===== measure interger displacment ===== ##
-    m = cdll.LoadLibrary(f'{CF.DLL_DIR}/PSO_2B2A.dll')
+    m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO_2B2A.dll')
 
     m.SCAN.argtypes = [POINTER(c_int), POINTER(c_int), POINTER(c_double),\
                        POINTER(c_double), POINTER(c_int), POINTER(c_int),\

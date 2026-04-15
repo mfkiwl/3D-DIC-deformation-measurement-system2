@@ -6,8 +6,8 @@ import glob
 import os
 import config as CF
 import config_user as CF_user
-from stereo_vision.tools.image_processing.src.image_processing import rotate_image
-from stereo_vision.tools.image_processing.src.image_processing import delete_old_image
+from stereo_vision.tools.vision.src.processor import rotate_image
+from stereo_vision.tools.vision.src.processor import delete_old_image
 
 ## Delete old images
 left_jpg_files = glob.glob(f"{CF.IMAGE_CAL_LEFT_DIR}*.jpg")
@@ -44,10 +44,14 @@ cv.namedWindow("image1", cv.WINDOW_NORMAL)
 cv.namedWindow("image2", cv.WINDOW_NORMAL)
 
 img_cnt = 0
-while (cap1.isOpened() and cap1.isOpened()):
+while (cap1.isOpened() and cap2.isOpened()):
     check_if_success1, img1 = cap1.read() 
     check_if_success2, img2 = cap2.read()
     
+    if not check_if_success1 or not check_if_success2:
+        print("[ERROR] Failed to read from camera.")
+        break
+
     # wait 5 ms, return ASCII code
     k = cv.waitKey(5)
 
@@ -62,7 +66,7 @@ while (cap1.isOpened() and cap1.isOpened()):
         success_left = cv.imwrite(f"{CF.IMAGE_CAL_LEFT_DIR}/img{img_cnt}.jpg", img1)
         if not success_left:
             print("[ERROR] Write left image fail!")
-        success_right = cv.imwrite(f"{CF.IMAGE_CAL_RIGHT_DIR}/img{img_cnt}.jpg", img1)
+        success_right = cv.imwrite(f"{CF.IMAGE_CAL_RIGHT_DIR}/img{img_cnt}.jpg", img2)
         if not success_right:
             print("[ERROR] Write right image fail!")
         print("Saved image!")

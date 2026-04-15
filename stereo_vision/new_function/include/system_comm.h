@@ -58,8 +58,8 @@ typedef struct SYS_INFO {
 } SYS_INFO;
 
 void init_random_seed();
-float random_digit(void);
-float get_mean(float sum, int side_len);
+double random_digit(void);
+double get_mean(double sum, int side_len);
 struct SYS_INFO *SYS_create();
 int SYS_clean(SYS_INFO *info);
 

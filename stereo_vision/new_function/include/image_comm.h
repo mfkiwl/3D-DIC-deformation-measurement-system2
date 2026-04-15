@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 typedef struct IMG_info{
-    float *ref_data;
-    float *cur_data;
+    double *ref_data;
+    double *cur_data;
     uint32_t width;
     uint32_t height;
     uint32_t pixel_format;

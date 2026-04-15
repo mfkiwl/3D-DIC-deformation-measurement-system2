@@ -6,14 +6,14 @@ lib = ctypes.CDLL('./2D_DIC.dll')
 
 # parm type
 lib.process_image.argtypes = [
-    ctypes.POINTER(ctypes.c_uint8), # ref_img
-    ctypes.POINTER(ctypes.c_uint8), # cur_img
+    ctypes.POINTER(ctypes.c_double), # ref_img
+    ctypes.POINTER(ctypes.c_double), # cur_img
     ctypes.c_int,                   # width
     ctypes.c_int,                   # height
     ctypes.c_int,                   # population
     ctypes.c_int,                   # subset_side_len
-    ctypes.POINTER(ctypes.c_int),   # img_ref_pt
-    ctypes.POINTER(ctypes.c_float)  # result_buffer (對應 C 的 float*)
+    ctypes.POINTER(ctypes.c_double), # img_ref_pt
+    ctypes.POINTER(ctypes.c_double)  # result_buffer (對應 C 的 double*)
 ]
 
 # return type
@@ -34,14 +34,18 @@ def main():
     h, w = img_ref.shape
     img_ref_pt_x = 426
     img_ref_pt_y = 320
-    ref_ptr = img_ref.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
-    cur_ptr = img_cur.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
 
-    img_ref_pt = np.array((img_ref_pt_y,img_ref_pt_x), dtype=np.int32)
-    img_ref_pt_ptr = img_ref_pt.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+    img_ref_f = img_ref.astype(np.double)
+    img_cur_f = img_cur.astype(np.double)
+
+    ref_ptr = img_ref_f.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) # 
+    cur_ptr = img_cur_f.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
+    img_ref_pt = np.array((img_ref_pt_y,img_ref_pt_x), dtype=np.double)
+    img_ref_pt_ptr = img_ref_pt.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     
-    result_buffer = np.zeros(3, dtype=np.float32)
-    result_buffer_ptr = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+    result_buffer = np.zeros(3, dtype=np.double)
+    result_buffer_ptr = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
     lib.process_image(
         ref_ptr, 

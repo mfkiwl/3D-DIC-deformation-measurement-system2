@@ -1,13 +1,12 @@
 #include "include/system_comm.h"
 #include "include/PSO_comm.h"
-
 #include <float.h>
 
-float float_rand_nor(void) {
-    return (rand() / (float)RAND_MAX);
+double double_rand_nor(void) {
+    return (rand() / (double)RAND_MAX);
 }
 
-static inline void clamp_to_bounds(float *value, float max, float min) {
+static inline void clamp_to_bounds(double *value, double max, double min) {
 	if (!value) return;
 	if (*value > max) *value = max;
 	else if (*value < min) *value = min;
@@ -108,31 +107,31 @@ int st_pso_algo_init(struct PSO_context *ctx) {
 int st_pso_algo_run(struct PSO_context *ctx) {
 	SYS_DBG("st_pso_algo_run\n");
 	if (ctx == NULL) return -1;
-	float c1 = ctx->config.c1;
-	float c2 = ctx->config.c2;
-	float border_side_len = ctx->config.border_side_len;
-	float border_side_len_half = 0.5 * (border_side_len - 1);
+	double c1 = ctx->config.c1;
+	double c2 = ctx->config.c2;
+	double border_side_len = ctx->config.border_side_len;
+	double border_side_len_half = 0.5 * (border_side_len - 1);
 	struct DIC_ZNCC_context *zncc_ctx = (struct DIC_ZNCC_context *)ctx->priv;
 	struct PSO_particle *particles = ctx->particle;
-	float spacing = ctx->config.layout.grid_spacing;
-	float half_len = (float)ctx->config.layout.shift_side_len_half;
+	double spacing = ctx->config.layout.grid_spacing;
+	double half_len = (double)ctx->config.layout.shift_side_len_half;
 	// initialize random var (only do one time)
 	init_random_seed();
 	// init setup
 	for (int p_idx = 0; p_idx < ctx->config.population; p_idx++) {
 		// initialize fixed points
 		if (p_idx < (ctx->config.layout.fixed_particles)) {
-			float x_pos = (float)(p_idx % ctx->config.layout.side_len_pt) * spacing - (float)half_len;
-			float y_pos = (float)(p_idx / ctx->config.layout.side_len_pt) * spacing - (float)half_len;
+			double x_pos = (double)(p_idx % ctx->config.layout.side_len_pt) * spacing - (double)half_len;
+			double y_pos = (double)(p_idx / ctx->config.layout.side_len_pt) * spacing - (double)half_len;
 			particles[p_idx].position[1] = x_pos;
 			particles[p_idx].position[0] = y_pos;
 			for (int dim=0; dim<ctx->config.dimension; dim++) {
-				particles[p_idx].velocity[dim] = ctx->config.v_ini*(float_rand_nor());
+				particles[p_idx].velocity[dim] = ctx->config.v_ini*(double_rand_nor());
 				particles[p_idx].ind_best_pos[dim] = particles[p_idx].position[dim];
 			}
 			zncc_ctx->subset_pt_cur_pos[0] = particles[p_idx].position[0]; // update pos for cost_function
     		zncc_ctx->subset_pt_cur_pos[1] = particles[p_idx].position[1]; // update pos for cost_function
-			float cost = ctx->cost_ops->cost_function(ctx);
+			double cost = ctx->cost_ops->cost_function(ctx);
 			SYS_DBG("cost = %.4f\n", cost);
 			particles[p_idx].ind_best_value = cost;
 			if (cost > ctx->global_best.value) {
@@ -146,13 +145,13 @@ int st_pso_algo_run(struct PSO_context *ctx) {
 		// initialize random points
 		else {
 			for (int dim=0; dim<ctx->config.dimension; dim++) {
-				particles[p_idx].velocity[dim] = ctx->config.v_ini*(float_rand_nor()); // should initialize in .init
-				particles[p_idx].position[dim] = border_side_len_half * (float_rand_nor());
+				particles[p_idx].velocity[dim] = ctx->config.v_ini*(double_rand_nor()); // should initialize in .init
+				particles[p_idx].position[dim] = border_side_len_half * (double_rand_nor());
 				particles[p_idx].ind_best_pos[dim] = particles[p_idx].position[dim];
 			}
 			zncc_ctx->subset_pt_cur_pos[0] = particles[p_idx].position[0]; // update pos for cost_function
     		zncc_ctx->subset_pt_cur_pos[1] = particles[p_idx].position[1]; // update pos for cost_function
-			float cost = ctx->cost_ops->cost_function(ctx);
+			double cost = ctx->cost_ops->cost_function(ctx);
 			particles[p_idx].ind_best_value = cost;
 			if (cost > ctx->global_best.value) {
 				ctx->global_best.value = cost;
@@ -168,10 +167,10 @@ int st_pso_algo_run(struct PSO_context *ctx) {
 		for (int p_idx = 0; p_idx < ctx->config.population; p_idx++) {
 			for (int dim = 0; dim<ctx->config.dimension; dim++) {
 				/* update pt*/
-				float weight = ctx->config.w_max - ((float)(iter + 1) / ctx->config.max_iter)*(ctx->config.w_max - ctx->config.w_min);
+				double weight = ctx->config.w_max - ((double)(iter + 1) / ctx->config.max_iter)*(ctx->config.w_max - ctx->config.w_min);
 				particles[p_idx].velocity[dim] = weight * particles[p_idx].velocity[dim] +\
-												 c1 * (float_rand_nor()) * (particles[p_idx].ind_best_pos[dim] - particles[p_idx].position[dim]) +\
-												 c2 * (float_rand_nor()) * (ctx->global_best.position[dim] - particles[p_idx].position[dim]);
+												 c1 * (double_rand_nor()) * (particles[p_idx].ind_best_pos[dim] - particles[p_idx].position[dim]) +\
+												 c2 * (double_rand_nor()) * (ctx->global_best.position[dim] - particles[p_idx].position[dim]);
 				
 				clamp_to_bounds(&particles[p_idx].velocity[dim], ctx->config.v_max, ctx->config.v_min);
 				particles[p_idx].position[dim] += particles[p_idx].velocity[dim];
@@ -179,7 +178,7 @@ int st_pso_algo_run(struct PSO_context *ctx) {
 			}
 			zncc_ctx->subset_pt_cur_pos[0] = particles[p_idx].position[0]; // update pos for cost_function
     		zncc_ctx->subset_pt_cur_pos[1] = particles[p_idx].position[1]; // update pos for cost_function
-			float cost = ctx->cost_ops->cost_function(ctx);
+			double cost = ctx->cost_ops->cost_function(ctx);
 
 			if (cost > particles[p_idx].ind_best_value) {
 				particles[p_idx].ind_best_value = cost;

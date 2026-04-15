@@ -24,14 +24,14 @@ typedef enum {
 } PSO_COST_TYPE;
 
 struct PSO_global_best {
-    float position[2]; // x, y
-    float value;
+    double position[2]; // x, y
+    double value;
     int index;
 };
 
 struct PSO_LayoutConfig{
     int side_len_pt;                    // matrix_side_len_points
-    float grid_spacing;                 // matrix_interval_pixel
+    double grid_spacing;                 // matrix_interval_pixel
     int fixed_particles;                // inital all fixed particles
     int shift_side_len_half;                    // correct the y corridate of point
     //int side_len;                     // matrix_side_len (pixel) (from priv)
@@ -44,24 +44,24 @@ struct PSO_config{
     int population;
     int dimension;
     int max_iter;
-    // float iteration_rec; 
+    // double iteration_rec; 
     int v_max;                        // velocity_max
     int v_min;                        // velocity_min
     int v_ini;                        // velocity_initial
-    float w_max;                      // w_upper
-    float w_min;                      // w_lower
-    float c1;                         // cognition_factor
-    float c2;                         // social_factor
-    float dec_factor;                 // Decrease_factor
-    float inc_factor;                 // Increase_factor
-    float border_side_len;            // border length 
+    double w_max;                      // w_upper
+    double w_min;                      // w_lower
+    double c1;                         // cognition_factor
+    double c2;                         // social_factor
+    double dec_factor;                 // Decrease_factor
+    double inc_factor;                 // Increase_factor
+    double border_side_len;            // border length 
 };
 
 struct PSO_particle {
-    float position[2];
-    float velocity[2];
-    float ind_best_pos[2];
-    float ind_best_value;
+    double position[2];
+    double velocity[2];
+    double ind_best_pos[2];
+    double ind_best_value;
 };
 
 typedef struct PSO_context {
@@ -88,7 +88,7 @@ int execute_pso_algorithm(struct PSO_context *ctx);
 int st_pso_algo_init(struct PSO_context *ctx);
 int st_pso_algo_run(struct PSO_context *ctx);
 int st_pso_algo_cleanup(struct PSO_context *ctx);
-float float_rand_nor(void);
+double double_rand_nor(void);
 
 extern struct PSO_cost_func_ops zncc_ops;
 extern struct PSO_cost_func_ops ssd_ops;

@@ -11,28 +11,27 @@ def find_pt_info_1B2B(img_1B,
                       TEST_SUBSET_SIZE_1B2B,
                       H_inv_1B2B,
                       J_1B2B,
-                      trans):
+                      translation):
        
        ## Initial setting ##
-       Size = TEST_SUBSET_SIZE_1B2B
        # half of subset
-       Len = int(0.5*(Size-1)) 
+       subset_side_len_half = int(0.5*(TEST_SUBSET_SIZE_1B2B-1)) 
        # half size of coef_max_range_1B2B (get the center of warp function)
-       C2_B_x_guess = C1_B_x - trans
+       C2_B_x_guess = C1_B_x - translation
        C2_B_y_guess = C1_B_y
        img_bef = np.array(img_1B, dtype=np.int32)
        img_aft = np.array(img_2B, dtype=np.int32)
 
        # displacement array
-       Displacement = np.zeros((2,), dtype=np.int32) # 依序為 [y, x]
+       Displacement = np.zeros((2,), dtype=np.int32) # [y, x]
        # index & CoefValue of correlation coeffition
        CoefValue = np.zeros((2,), dtype=np.float64)
        # initial point
        Object_point = np.array((C2_B_y_guess, C2_B_x_guess), dtype=np.int32)
 
        # Reference subset (undeformed subset)
-       img_bef_sub = img_bef[C1_B_y-Len:C1_B_y+Len+1,\
-                             C1_B_x-Len:C1_B_x+Len+1]
+       img_bef_sub = img_bef[C1_B_y-subset_side_len_half:C1_B_y+subset_side_len_half+1,\
+                             C1_B_x-subset_side_len_half:C1_B_x+subset_side_len_half+1]
        Mean_bef = np.array(np.mean(img_bef_sub), dtype=np.float64)
        img_bef_sub = img_bef_sub.astype(np.int32)
 
@@ -40,7 +39,7 @@ def find_pt_info_1B2B(img_1B,
        img_aft_sub = np.zeros((Size, Size), dtype=np.int32)
 
        ## ===== measure interger displacment ===== ##
-       m = cdll.LoadLibrary(f'{CF.DLL_DIR}/PSO_1B2B.dll')
+       m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO_1B2B.dll')
        m.SCAN.argtypes = [POINTER(c_int), POINTER(c_int), POINTER(c_int),\
                           POINTER(c_double), POINTER(c_int), POINTER(c_int),\
                           POINTER(c_double)]
@@ -109,9 +108,9 @@ def find_pt_info_1B2B(img_1B,
               corelation_sum = corelation_sum.reshape(6,1) 
               delta_P = (-H_inv_1B2B @ corelation_sum).flatten() # flatten turn 2d array to 1d array to get scalar
               # Update limit (if limit is enough small, then quit)
-              limit = np.sqrt(np.square(delta_P[0]) + np.square(delta_P[1]*Len)+
-                              np.square(delta_P[2]*Len) + np.square(delta_P[3])+
-                              np.square(delta_P[4]*Len) + np.square(delta_P[5]*Len))
+              limit = np.sqrt(np.square(delta_P[0]) + np.square(delta_P[1]*subset_side_len_half)+
+                              np.square(delta_P[2]*subset_side_len_half) + np.square(delta_P[3])+
+                              np.square(delta_P[4]*subset_side_len_half) + np.square(delta_P[5]*subset_side_len_half))
 
               warp_inc_function = np.array([[1+delta_P[1], delta_P[2], delta_P[0]],
                                            [delta_P[4], 1+delta_P[5], delta_P[3]],

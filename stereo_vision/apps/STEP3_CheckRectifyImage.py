@@ -10,8 +10,8 @@ Stereo Vision
 import cv2 as cv
 import config as CF
 import config_user as CF_user
-from stereo_vision.tools.image_processing.src.image_processing import rotate_image
-from stereo_vision.tools.image_processing.src.image_processing import click_event
+from stereo_vision.tools.vision.src.processor import rotate_image
+from stereo_vision.tools.vision.src.processor import click_event
 ### ===== 參數設定 ===== ###
 # camera index
 cam_index_left = 1
@@ -28,6 +28,7 @@ stereoMapL_x = cv_file.getNode('stereoMapL_x').mat()
 stereoMapL_y = cv_file.getNode('stereoMapL_y').mat()
 stereoMapR_x = cv_file.getNode('stereoMapR_x').mat()
 stereoMapR_y = cv_file.getNode('stereoMapR_y').mat()
+cv_file.release()
 
 # Open both cameras (注意相機編號!!!)
 cap_left =  cv.VideoCapture(cam_index_left, cv.CAP_DSHOW)
@@ -59,6 +60,9 @@ cv.setMouseCallback('frame left', click_event)
 while(cap_right.isOpened() and cap_left.isOpened()):
     succes_left, frame_left0 = cap_left.read()
     succes_right, frame_right0 = cap_right.read()
+    if not succes_left or not succes_right:
+        print("[ERROR] Failed to read from camera.")
+        break
 
     frame_left_ori = rotate_image(frame_left0,0)
     frame_right_ori = rotate_image(frame_right0,0)

@@ -21,7 +21,7 @@ def find_pt_1B1A(img_1B,
     img_aft = np.array(img_1A, dtype=np.int32)
 
     # displacement array
-    Displacement = np.zeros((2,), dtype=np.int32) # 依序為 [y, x]
+    Displacement = np.zeros((2,), dtype=np.int32) # [y, x]
     # index & CoefValue of correlation coeffition
     CoefValue = np.zeros((2,), dtype=np.float64)
     # initial point
@@ -39,7 +39,7 @@ def find_pt_1B1A(img_1B,
     img_aft_sub = np.zeros((Size,Size), dtype=np.int32)
 
     ## ===== measure interger displacment ===== ##
-    m = cdll.LoadLibrary(f'{CF.DLL_DIR}/PSO_1B1A.dll')
+    m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO_1B1A.dll')
 
     m.SCAN.argtypes = [POINTER(c_int), POINTER(c_int), POINTER(c_int),\
                        POINTER(c_double), POINTER(c_int), POINTER(c_int),\

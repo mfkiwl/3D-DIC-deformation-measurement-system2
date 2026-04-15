@@ -3,9 +3,9 @@
 #include "include/image_comm.h"
 #include "include/DIC_comm.h"
 
-float random_digit(void)
+double random_digit(void)
 {
-    return rand() / (float)RAND_MAX;
+    return rand() / (double)RAND_MAX;
 }
 
 void init_random_seed() {
@@ -17,8 +17,8 @@ void init_random_seed() {
     }
 }
 
-float get_mean(float sum, int side_len) {
-    return sum/(float)((side_len)*(side_len)); // return type: float
+double get_mean(double sum, int side_len) {
+    return sum/(double)((side_len)*(side_len)); // return type: double
 }
 
 /*
