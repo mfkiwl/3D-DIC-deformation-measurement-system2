@@ -1,19 +1,17 @@
 ## ===== DIC (digital image correlation) ===== ##
 import numpy as np
 import ctypes
-import config as CF
+import stereo_vision.config as CF
 import time
 import stereo_vision.DIC.python.ICGN
 from stereo_vision.DIC.python.common import DIC_search_pt_type
-import os
+import cv2
 
-dll_path = f'{CF.BUILD_DIR}/2D_DIC.dll'
-if not os.path.exists(dll_path):
-    print(f"file not found:{dll_path}")
 
 def run_DIC(img_ref,
             img_cur,
-            img_ref_x, img_ref_y,
+            img_ref_x, 
+            img_ref_y,
             subset_size_len,
             H_inv_mat,
             J_mat,
@@ -21,6 +19,7 @@ def run_DIC(img_ref,
             population,
             search_type):
        
+       print(f"search_type={search_type}")
        if search_type == DIC_search_pt_type.initial:
               img_ref_pt_x_guess                 = img_ref_x - translation
        else:
@@ -29,45 +28,53 @@ def run_DIC(img_ref,
        
        h, w                                      = img_ref.shape
        subset_side_len_half                      = int(0.5*(subset_size_len-1)) 
-       img_ref_f                                 = np.array(img_ref, dtype=np.float32, copy=False)
-       img_cur_f                                 = np.array(img_cur, dtype=np.float32, copy=False)
-       result_buffer                             = np.zeros(3, dtype=np.float32) # [y, x, coef]
-       initial_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.float32)
+       img_ref                                   = np.asarray(img_ref, dtype=np.double)
+       img_cur                                   = np.asarray(img_cur, dtype=np.double)
+       result_buffer                             = np.zeros(3, dtype=np.double) # [y, x, coef]
+       img_ref_pt_pos                            = np.array((img_ref_y, img_ref_x), dtype=np.double)
+       img_cur_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.double)
 
        # ===== measure interger displacment ===== 
-       lib = ctypes.CDLL('./build/2D_DIC.dll')
+       lib = ctypes.CDLL(f"{CF.BUILD_DIR}/2D_DIC.dll")
        # parm type
        lib.process_image.argtypes = [
-              ctypes.POINTER(ctypes.c_float),    # ref_img
-              ctypes.POINTER(ctypes.c_float),    # cur_img
-              ctypes.c_int,                      # width
-              ctypes.c_int,                      # height
-              ctypes.c_int,                      # population
-              ctypes.c_int,                      # subset_side_len
-              ctypes.POINTER(ctypes.c_float),    # img_ref_pt
-              ctypes.POINTER(ctypes.c_float)     # result_buffer
+              ctypes.POINTER(ctypes.c_double),    # ref_img
+              ctypes.POINTER(ctypes.c_double),    # cur_img
+              ctypes.c_int,                       # width
+              ctypes.c_int,                       # height
+              ctypes.c_int,                       # population
+              ctypes.c_int,                       # subset_side_len
+              ctypes.POINTER(ctypes.c_double),    # img_ref_pt
+              ctypes.POINTER(ctypes.c_double),    # img_cur_pt
+              ctypes.POINTER(ctypes.c_double)     # result_buffer
        ]
        lib.process_image.restype = None
 
-       img_ref_f_ptr = img_ref_f.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-       img_cur_f_ptr = img_cur_f.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-       initial_pt_pos_ptr = initial_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-       result_buffer_ptr = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_float))                  
+       img_ref_ptr                               = img_ref.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+       img_cur_ptr                               = img_cur.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+       img_ref_pt_pos_ptr                        = img_ref_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+       img_cur_pt_pos_ptr                        = img_cur_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+       result_buffer_ptr                         = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) 
+             
        # run_PSO
        lib.process_image(
-              img_ref_f_ptr, 
-              img_cur_f_ptr, 
+              img_ref_ptr, 
+              img_cur_ptr, 
               w, 
               h, 
               population,
               subset_size_len,
-              initial_pt_pos_ptr,
+              img_ref_pt_pos_ptr,
+              img_cur_pt_pos_ptr,
               result_buffer_ptr
        )
 
        PSO_dis_y = result_buffer[0]
        PSO_dis_x = result_buffer[1]
        correlation_coef = result_buffer[2]
+       print(f"PSO_dis_y={PSO_dis_y}")
+       print(f"PSO_dis_x={PSO_dis_x}")
+       print(f"correlation_coef={correlation_coef}")
        # print(f"(PSO_dis_x,PSO_dis_y)=({PSO_dis_x},{PSO_dis_y})")
 
        # Reference subset
@@ -131,7 +138,7 @@ def run_DIC(img_ref,
 
 
 
-       # img_ref_sub_f32 = img_ref_f[img_ref_y-subset_side_len_half:img_ref_y+subset_side_len_half+1,\
+       # img_ref_sub_f32 = img_ref[img_ref_y-subset_side_len_half:img_ref_y+subset_side_len_half+1,\
        #                             img_ref_x-subset_side_len_half:img_ref_x+subset_side_len_half+1]
        # img_ref_sub_f32_mean = np.array(np.mean(img_ref_sub_f32), dtype=np.float64)
        # img_cur_sub_f32 = np.zeros((subset_size_len, subset_size_len), dtype=np.float32)

@@ -14,6 +14,7 @@ typedef struct DIC_config{
 typedef struct DIC_context {
     struct DIC_config config;
     double *img_ref_pt_pos;
+    double *img_cur_pt_pos;
     void *priv;
 } DIC_context;
 
@@ -30,12 +31,7 @@ typedef struct DIC_ZNCC_context {
     double subset_pt_cur_pos[2];                 // Pi_x, Pi_y relative correct coordinate
     // double subset_pt_ref_pos[2];
     double img_pt_ref_pos[2];                      // object point
-    // int *IMG_aft;
-    // int *IMG_bef;
-    // int IMG_pt_cur_pos[2];
-    // int IMG_width;
-    // int IMG_height;
-    // int corr_coef;
+    double img_pt_cur_pos[2]; 
 } DIC_ZNCC_context;
 
 typedef struct DIC_SSD_context {

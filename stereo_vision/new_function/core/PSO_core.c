@@ -197,7 +197,7 @@ int st_pso_algo_run(struct PSO_context *ctx) {
 		}
 	}
 	// Result is in ctx->global_best
-	printf("[INFO] PSO finished!\n");
+	SYS_DBG("[INFO] PSO finished!\n");
 	return SYS_SUCCESS;
 }
 

@@ -22,7 +22,7 @@ print("\n Stereo_DIC_PSO_ICGN ")
 
 # Camera parameters to undistort and rectify images
 cv_file = cv.FileStorage()
-cv_file.open(CF.STEREP_MAP_PATH, cv.FileStorage_READ)
+cv_file.open(CF.STEREO_MAP_PATH, cv.FileStorage_READ)
 
 stereoMapL_x = cv_file.getNode('stereoMapL_x').mat()
 stereoMapL_y = cv_file.getNode('stereoMapL_y').mat()

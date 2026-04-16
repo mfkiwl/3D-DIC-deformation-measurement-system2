@@ -10,7 +10,7 @@
 
 #define SYS_FAILURE              				-1
 #define SYS_SUCCESS               				0
-#define SYS_DBG_EN                				1
+// #define SYS_DBG_EN                				1
 #define SYS_ERR_EN				  				1
 
 #define square(x) ((x)*(x))

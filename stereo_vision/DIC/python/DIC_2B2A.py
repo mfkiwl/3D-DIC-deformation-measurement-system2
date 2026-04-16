@@ -1,7 +1,7 @@
 
 import numpy as np
 from ctypes import cdll, c_int, c_double, POINTER
-import config as CF
+import stereo_vision.config as CF
 import stereo_vision.DIC.python.ICGN
 
 ## ===== 2B2A =====

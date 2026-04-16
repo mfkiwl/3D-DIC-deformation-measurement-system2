@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
 __declspec(dllexport)
 void process_image(double *ref_img, double *cur_img, int width, int height,\
                      int population, int subset_side_len,\
-                     double *img_ref_pt, double *result){
+                     double *img_ref_pt, double *img_cur_pt, double *result){
     if (ref_img == NULL || cur_img == NULL) return;
     struct SYS_INFO *info = SYS_create();
     if (!info) return;
@@ -26,13 +26,14 @@ void process_image(double *ref_img, double *cur_img, int width, int height,\
     info->pso_ctx.config.population         = population;
     info->dic_ctx.config.subset_side_len    = subset_side_len;
     info->dic_ctx.img_ref_pt_pos            = img_ref_pt;
+    info->dic_ctx.img_cur_pt_pos            = img_cur_pt;
 
     // assign algo type
     info->pso_ctx.algo_ops                  = &standard_pso_algo_ops;
 
     if (info) {
         run_PSO(info);
-        printf("global_best_pos: (x,y) = (%.2f,%.2f)\n", info->pso_ctx.global_best.position[1], info->pso_ctx.global_best.position[0]);
+        SYS_DBG("global_best_pos: (x,y) = (%.2f,%.2f)\n", info->pso_ctx.global_best.position[1], info->pso_ctx.global_best.position[0]);
         result[0] = info->pso_ctx.global_best.position[0]; // y
         result[1] = info->pso_ctx.global_best.position[1]; // x
         result[2] = info->pso_ctx.global_best.value; // coef

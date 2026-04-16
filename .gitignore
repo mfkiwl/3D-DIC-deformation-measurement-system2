@@ -4,7 +4,6 @@
 __pycache__/
 *.pyc
 
-# 虛擬環境
 venv/
 env/
 
@@ -15,3 +14,5 @@ build/
 image
 
 *.dll
+
+*.xml

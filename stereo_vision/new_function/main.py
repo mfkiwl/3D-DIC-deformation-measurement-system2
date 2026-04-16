@@ -32,8 +32,11 @@ def main():
         return
 
     h, w = img_ref.shape
-    img_ref_pt_x = 426
-    img_ref_pt_y = 320
+    img_ref_pt_x = 426 # reference subset center point x
+    img_ref_pt_y = 320 # reference subset center point y
+    img_cur_pt_x = 426 # current subset center point x      (the start searching point)
+    img_cur_pt_y = 320 # current subset center point y      (the start searching point)
+
 
     img_ref_f = img_ref.astype(np.double)
     img_cur_f = img_cur.astype(np.double)
@@ -43,6 +46,8 @@ def main():
 
     img_ref_pt = np.array((img_ref_pt_y,img_ref_pt_x), dtype=np.double)
     img_ref_pt_ptr = img_ref_pt.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    img_cur_pt = np.array((img_cur_pt_y,img_cur_pt_x), dtype=np.double)
+    img_cur_pt_ptr = img_cur_pt.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     
     result_buffer = np.zeros(3, dtype=np.double)
     result_buffer_ptr = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
@@ -55,6 +60,7 @@ def main():
         population,
         subset_side_len,
         img_ref_pt_ptr,
+        img_cur_pt_ptr,
         result_buffer_ptr
     )
 

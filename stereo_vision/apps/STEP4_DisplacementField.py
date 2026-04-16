@@ -4,21 +4,19 @@ print("\n<< Stereo_DIC_PSO_ICGN >>")
 import numpy as np
 import cv2 as cv
 import os
+import sys
 import time
-import config as CF
-import config_user as CF_user
+from stereo_vision import config as CF
+from stereo_vision import config_user as CF_user
 import stereo_vision.tools.math.src.hessian
-import stereo_vision.DIC.python.DIC_1B2B
 import stereo_vision.DIC.python.DIC_1B1A
 import stereo_vision.DIC.python.DIC_2B2A
 import stereo_vision.DIC.python.ICGN
+import stereo_vision.DIC.python.DIC_ICGN
 import stereo_vision.camera_calibration.src.image_calibration as img_cal
 from stereo_vision.tools.vision.src.click_tool import click_recorder
 from stereo_vision.tools.vision.src.processor import rotate_image
 from stereo_vision.DIC.python.common import DIC_search_pt_type
-
-print(f"pwd: {os.getcwd()}")
-print(f"WORKSPACE: {CF.WORKSPACE}\n")
 
 # in-plane:0, out-of-plane:1
 if CF_user.TEST_MODE_EN == 0:
@@ -102,7 +100,7 @@ print("done\n")
 
 ## Read the image calibration file and obtain the projection matrix.
 cv_file = cv.FileStorage()
-cv_file.open(CF.STEREP_MAP_PATH, cv.FileStorage_READ)
+cv_file.open(CF.STEREO_MAP_PATH, cv.FileStorage_READ)
 Q = cv_file.getNode('Q').mat()
 cv_file.release()
 
@@ -117,10 +115,10 @@ C1_B_y_ini = coor_1B.y
 C2_B_x_ini = coor_2B.x
 C2_B_y_ini = coor_2B.y
 
-# C1_B_x_ini = 468
-# C1_B_y_ini = 273
-# C2_B_x_ini = 164
-# C2_B_y_ini = 259
+C1_B_x_ini = 468
+C1_B_y_ini = 273
+C2_B_x_ini = 164
+C2_B_y_ini = 259
 
 ## check if C1_B_x_ini, y and C2_B_x_ini, y not defined
 for var_name in ['C1_B_x_ini', 'C1_B_y_ini', 'C2_B_x_ini', 'C2_B_y_ini']:
@@ -157,9 +155,6 @@ if CF_user.TEST_GAUSSIANBLUR_EN == 1:
 """ ===== Compute image gradient Part1 ====="""
 img_1B_rec_gray = cv.cvtColor(img_1B_rec, cv.COLOR_BGR2GRAY) # Convert to gray image
 img_2B_rec_gray = cv.cvtColor(img_2B_rec, cv.COLOR_BGR2GRAY)
-img_1B_rec_gray_f32 = img_1B_rec_gray.astype(np.float32)
-img_2B_rec_gray_f32 = img_2B_rec_gray.astype(np.float32)
-
 height, width = img_2B_rec_gray.shape
 
 # precompute the img_bef image gradient by Sobel operator
@@ -167,22 +162,25 @@ height, width = img_2B_rec_gray.shape
 img_1B_sobel_y = cv.Sobel(img_1B_rec_gray, cv.CV_32F, 0, 1)*0.125
 img_1B_sobel_x = cv.Sobel(img_1B_rec_gray, cv.CV_32F, 1, 0)*0.125
 
+img_1B_rec_gray = img_1B_rec_gray.astype(np.double)
+img_2B_rec_gray = img_2B_rec_gray.astype(np.double)
+
 # storage area
 C1B_points          = np.zeros((side_len,side_len,2), dtype=int)
-C2B_points          = np.zeros((side_len,side_len,2), dtype=float)
-WC_bef_zone         = np.zeros((side_len,side_len,3), dtype=float)
-WC_aft_zone         = np.zeros((side_len,side_len,3), dtype=float)
-H1B1A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=float)
-H2B2A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=float)
-J1B1A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A,6), dtype=float)
-J2B2A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A,6), dtype=float)
-img_2B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A), dtype=float)
-disM                = np.zeros((side_len,side_len,3), dtype=float)
-disM_out            = np.zeros((side_len,side_len), dtype=float)
-disM_in_1           = np.zeros((side_len,side_len), dtype=float)
-disM_in_2           = np.zeros((side_len,side_len), dtype=float)
-stress_in           = np.zeros((side_len,side_len), dtype=float)
-stress_out          = np.zeros((side_len,side_len), dtype=float)
+C2B_points          = np.zeros((side_len,side_len,2), dtype=np.double)
+WC_bef_zone         = np.zeros((side_len,side_len,3), dtype=np.double)
+WC_aft_zone         = np.zeros((side_len,side_len,3), dtype=np.double)
+H1B1A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
+H2B2A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
+J1B1A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A,6), dtype=np.double)
+J2B2A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A,6), dtype=np.double)
+img_2B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A), dtype=np.double)
+disM                = np.zeros((side_len,side_len,3), dtype=np.double)
+disM_out            = np.zeros((side_len,side_len), dtype=np.double)
+disM_in_1           = np.zeros((side_len,side_len), dtype=np.double)
+disM_in_2           = np.zeros((side_len,side_len), dtype=np.double)
+stress_in           = np.zeros((side_len,side_len), dtype=np.double)
+stress_out          = np.zeros((side_len,side_len), dtype=np.double)
 
 print(f"C1_B_x_ini: {C1_B_x_ini}")
 print(f"C1_B_y_ini: {C1_B_y_ini}")
@@ -209,16 +207,16 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_gradient_x, img_gradient_y)
 
         C2_B_x, C2_B_y =\
-        stereo_vision.DIC.python.DIC_ICGN(img_1B_rec_gray,
-                                            img_2B_rec_gray,
-                                            C1_B_x,
-                                            C1_B_y,
-                                            CF_user.TEST_SUBSET_SIZE_1B2B,
-                                            H_inv_1B2B,
-                                            J_1B2B,
-                                            translate_1B2B,
-                                            CF_user.PSO_population,
-                                            DIC_search_pt_type.initial)
+        stereo_vision.DIC.python.DIC_ICGN.run_DIC(img_1B_rec_gray,
+                                                    img_2B_rec_gray,
+                                                    C1_B_x,
+                                                    C1_B_y,
+                                                    CF_user.TEST_SUBSET_SIZE_1B2B,
+                                                    H_inv_1B2B,
+                                                    J_1B2B,
+                                                    translate_1B2B,
+                                                    CF_user.PSO_population,
+                                                    DIC_search_pt_type.initial)
 
         C2B_points[ROW+side_len_half][COL+side_len_half][0] = C2_B_y
         C2B_points[ROW+side_len_half][COL+side_len_half][1] = C2_B_x
@@ -279,6 +277,7 @@ cv.imshow('img_2B_rec', img_2B_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
+sys.exit(0)
 
 dis_sum = 0
 for img_idx in range(1,2,1):

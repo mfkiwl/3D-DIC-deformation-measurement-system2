@@ -33,12 +33,12 @@ double get_subset_mean(const DIC_subset_info *subset) {
 static void get_ref_subset_data(struct SYS_INFO *info) {
 	struct DIC_ZNCC_context *zncc_ctx = info->pso_ctx.priv;
 	double *pos_ptr 				= info->dic_ctx.img_ref_pt_pos;
-	double *ref_img_data 		= info->pso_ctx.img_info.ref_data;
-	int subset_side_len			= info->dic_ctx.config.subset_side_len;
-	int img_width 				= info->pso_ctx.img_info.width;
-	int img_height 				= info->pso_ctx.img_info.height;
-	double img_pt_y_shift 		= pos_ptr[0] - (subset_side_len - 1) / 2.0f;
-	double img_pt_x_shift 		= pos_ptr[1] - (subset_side_len - 1) / 2.0f;
+	double *ref_img_data 			= info->pso_ctx.img_info.ref_data;
+	int subset_side_len				= info->dic_ctx.config.subset_side_len;
+	int img_width 					= info->pso_ctx.img_info.width;
+	int img_height 					= info->pso_ctx.img_info.height;
+	double img_pt_y_shift 			= pos_ptr[0] - (subset_side_len - 1) / 2.0f;
+	double img_pt_x_shift 			= pos_ptr[1] - (subset_side_len - 1) / 2.0f;
 	double *ref_subset_data 		= zncc_ctx->ref_subset_info.subset_data;
 	for (int row = 0; row < subset_side_len; row++) {
 		for (int col = 0; col < subset_side_len; col++) {
@@ -60,6 +60,8 @@ void ZNCC_ctx_init(struct SYS_INFO *info) {
 	zncc_ctx->cur_subset_info.side_len 		= 	info->dic_ctx.config.subset_side_len;
 	zncc_ctx->img_pt_ref_pos[0]				=	info->dic_ctx.img_ref_pt_pos[0];
 	zncc_ctx->img_pt_ref_pos[1]				=	info->dic_ctx.img_ref_pt_pos[1];
+	zncc_ctx->img_pt_cur_pos[0]				=	info->dic_ctx.img_cur_pt_pos[0];
+	zncc_ctx->img_pt_cur_pos[1]				=	info->dic_ctx.img_cur_pt_pos[1];
 	zncc_ctx->cur_subset_info.subset_data 	= 	NULL; // calculate in runtime		
 	zncc_ctx->ref_subset_info.total_pixels 	= 	square(zncc_ctx->ref_subset_info.side_len);
 	zncc_ctx->cur_subset_info.total_pixels 	= 	square(zncc_ctx->cur_subset_info.side_len);
@@ -108,21 +110,21 @@ double ZNCC_cost_function(struct PSO_context *ctx) {
 	struct DIC_ZNCC_context *zncc_ctx = (struct DIC_ZNCC_context *)ctx->priv;
 	double rel_pso_pt_y 				= zncc_ctx->subset_pt_cur_pos[0]; 	// Pi_x, Pi_y relative corrected coordinate
 	double rel_pso_pt_x 				= zncc_ctx->subset_pt_cur_pos[1]; 	// Pi_x, Pi_y relative corrected coordinate
-	double img_ref_pt_y 				= zncc_ctx->img_pt_ref_pos[0]; 		// start point (fixed in whole PSO process)
-	double img_ref_pt_x 				= zncc_ctx->img_pt_ref_pos[1]; 		// start point (fixed in whole PSO process)
+	double img_cur_pt_y 				= zncc_ctx->img_pt_cur_pos[0]; 		// start point (fixed in whole PSO process)
+	double img_cur_pt_x 				= zncc_ctx->img_pt_cur_pos[1]; 		// start point (fixed in whole PSO process)
 
-	int img_width 					= ctx->img_info.width;
-	int img_height 					= ctx->img_info.height;
-	double *cur_img_data 			= ctx->img_info.cur_data;
-	int subset_side_len 			= zncc_ctx->ref_subset_info.side_len;
+	int img_width 						= ctx->img_info.width;
+	int img_height 						= ctx->img_info.height;
+	double *cur_img_data 				= ctx->img_info.cur_data;
+	int subset_side_len 				= zncc_ctx->ref_subset_info.side_len;
 	double *ref_subset_data 			= zncc_ctx->ref_subset_info.subset_data;
 	double *cur_subset_data 			= zncc_ctx->cur_subset_info.subset_data;
 
-	double img_pso_pt_y 				= img_ref_pt_y + rel_pso_pt_y; 		// pso particle absolute coordinate
-	double img_pso_pt_x 				= img_ref_pt_x + rel_pso_pt_x; 		// pso particle absolute coordinate
+	double img_pso_pt_y 				= img_cur_pt_y + rel_pso_pt_y; 		// pso particle absolute coordinate
+	double img_pso_pt_x 				= img_cur_pt_x + rel_pso_pt_x; 		// pso particle absolute coordinate
 
-	double img_pso_pt_y_shift 		= img_pso_pt_y - ((subset_side_len - 1) / 2.0f); // shift to left_top_point, means (0,0) point in subset matrix(n,n)
-	double img_pso_pt_x_shift		= img_pso_pt_x - ((subset_side_len - 1) / 2.0f);
+	double img_pso_pt_y_shift 			= img_pso_pt_y - ((subset_side_len - 1) / 2.0f); // shift to left_top_point, means (0,0) point in subset matrix(n,n)
+	double img_pso_pt_x_shift			= img_pso_pt_x - ((subset_side_len - 1) / 2.0f);
 
 	if ((img_pso_pt_y_shift + subset_side_len + interp_safe_margin()) > img_height || (img_pso_pt_y_shift + interp_safe_margin()) < 0) {
 		SYS_DBG("shifted PSO particle image pos_y out of bound!\n");
@@ -162,7 +164,6 @@ double ZNCC_cost_function(struct PSO_context *ctx) {
 		}
 	}
 	if (ref_sum_den == 0 || cur_sum_den == 0) return NAN;
-	SYS_DBG("sum = %.2f\n", sum);
 	return (sum / (sqrt(ref_sum_den * cur_sum_den)));
 }
 
