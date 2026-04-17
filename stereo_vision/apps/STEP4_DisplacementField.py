@@ -9,14 +9,19 @@ import time
 from stereo_vision import config as CF
 from stereo_vision import config_user as CF_user
 import stereo_vision.tools.math.src.hessian
-import stereo_vision.DIC.python.DIC_1B1A
-import stereo_vision.DIC.python.DIC_2B2A
-import stereo_vision.DIC.python.ICGN
-import stereo_vision.DIC.python.DIC_ICGN
+import stereo_vision.DIC.python.ICGN as ICGN
+import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
 import stereo_vision.camera_calibration.src.image_calibration as img_cal
 from stereo_vision.tools.vision.src.click_tool import click_recorder
 from stereo_vision.tools.vision.src.processor import rotate_image
 from stereo_vision.DIC.python.common import DIC_search_pt_type
+
+from stereo_vision.config_DIC import (
+    DIC_config, DIC_Image, Img_Ref_Pt_Pos, 
+    Stereo_DIC_Init_Param, Subset_Info, 
+    Img_Grad_Info, Coarse_Search_Method, PSO_Config
+)
+
 
 # in-plane:0, out-of-plane:1
 if CF_user.TEST_MODE_EN == 0:
@@ -139,12 +144,10 @@ if translate_1B2B < 0:
     print(f"translate_1B2B: {translate_1B2B} < 0 !!")
     exit(1)
 
-
 focal = Q[2][3]                 # focal (unit:pixel)
 baseline = 1/Q[3][2]            # baseline (unit:mm)
 principal_x = -Q[0][3]          # The pt center coor of the camera.
 principal_y = -Q[1][3]          # The pt center coor of the camera.
-
 
 print("Pre-processing...")
 if CF_user.TEST_GAUSSIANBLUR_EN == 1:
@@ -174,6 +177,7 @@ H1B1A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
 H2B2A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
 J1B1A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A,6), dtype=np.double)
 J2B2A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A,6), dtype=np.double)
+img_1B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A), dtype=np.double)
 img_2B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A), dtype=np.double)
 disM                = np.zeros((side_len,side_len,3), dtype=np.double)
 disM_out            = np.zeros((side_len,side_len), dtype=np.double)
@@ -197,63 +201,63 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
         C1B_points[ROW + side_len_half][COL + side_len_half][1] = C1_B_x
         ## ========== Compute image gradient ========== """
         # Image gradient of 1B2B
-        len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
-        img_gradient_y = img_1B_sobel_y[C1_B_y - len_1B2B_half:C1_B_y + len_1B2B_half + 1,\
-                                        C1_B_x - len_1B2B_half:C1_B_x + len_1B2B_half + 1]
-        img_gradient_x = img_1B_sobel_x[C1_B_y - len_1B2B_half:C1_B_y + len_1B2B_half + 1,\
-                                        C1_B_x - len_1B2B_half:C1_B_x + len_1B2B_half + 1]
-        H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_gradient_x, img_gradient_y)
+        subset_side_len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
+        img_grad_1B2B_y = img_1B_sobel_y[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
+                                         C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
+        img_grad_1B2B_x = img_1B_sobel_x[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
+                                         C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
+        H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_grad_1B2B_x, img_grad_1B2B_y)
+        C1B_subset_center_pt = np.array((C1_B_x,C1_B_y), dtype=np.float64)
+        img_1B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, img_1B_rec_gray, C1B_subset_center_pt)
+        img_1B_sub_zone[ROW+side_len_half][COL+side_len_half][:][:] = img_1B_sub
 
-        C2_B_x, C2_B_y =\
-        stereo_vision.DIC.python.DIC_ICGN.run_DIC_init(img_1B_rec_gray,
-                                                    img_2B_rec_gray,
-                                                    C1_B_x,
-                                                    C1_B_y,
-                                                    CF_user.TEST_SUBSET_SIZE_1B2B,
-                                                    H_inv_1B2B,
-                                                    J_1B2B,
-                                                    translate_1B2B,
-                                                    CF_user.PSO_population,
-                                                    DIC_search_pt_type.initial)
+        dic_config = DIC_config (
+            coarse_method       = Coarse_Search_Method.PSO,
+            dic_image           = DIC_Image(ref = img_1B_rec_gray, cur = img_2B_rec_gray),
+            img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
+            init_param          = Stereo_DIC_Init_Param(translate = translate_1B2B),
+            subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B2B),
+            subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B2B),
+            img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
+            pso_config          = PSO_Config(CF_user.PSO_population),
+            search_type         = DIC_search_pt_type.initial
+        )
+        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config)
 
         C2B_points[ROW+side_len_half][COL+side_len_half][0] = C2_B_y
         C2B_points[ROW+side_len_half][COL+side_len_half][1] = C2_B_x
         ## initial 3d coordinate
-        # get disparity: xl-xr (unit:pixel)
-        disparity_1B2B = (C1_B_x - C2_B_x) 
+        disparity_1B2B = (C1_B_x - C2_B_x) # get disparity: xl-xr (unit:pixel)
         disparity_1B2B_reci = np.divide(1, disparity_1B2B)
         # 3D coordinate of Reference point (initial)
-        X_origin = (C1_B_x-principal_x)*baseline*disparity_1B2B_reci
-        Y_origin = (C1_B_y-principal_y)*baseline*disparity_1B2B_reci
-        Z_origin = focal*baseline*disparity_1B2B_reci
+        X_origin = (C1_B_x - principal_x) * baseline * disparity_1B2B_reci
+        Y_origin = (C1_B_y - principal_y) * baseline * disparity_1B2B_reci
+        Z_origin = focal * baseline * disparity_1B2B_reci
         WC_bef_zone[ROW+side_len_half][COL+side_len_half][0] = X_origin
         WC_bef_zone[ROW+side_len_half][COL+side_len_half][1] = Y_origin
         WC_bef_zone[ROW+side_len_half][COL+side_len_half][2] = Z_origin
         
-        ## ========== pre-calculate Hessian & Jacobian for 1B1A & 2B2A ==========
-        ## ========== 1B1A ========== ##
-        len_1B1A = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B1A-1))
-        img_grad_1B1A_x = img_1B_sobel_x[C1_B_y - len_1B1A:C1_B_y + len_1B1A+1,\
-                                         C1_B_x - len_1B1A:C1_B_x + len_1B1A+1]
-        img_grad_1B1A_y = img_1B_sobel_y[C1_B_y - len_1B1A:C1_B_y + len_1B1A+1,\
-                                         C1_B_x - len_1B1A:C1_B_x + len_1B1A+1]
+        # pre-calculate Hessian & Jacobian for 1B1A & 2B2A
+        # ===== 1B1A ===== ##
+        subset_side_len_1B1A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B1A-1))
+        img_grad_1B1A_x = img_1B_sobel_x[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
+                                         C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
+        img_grad_1B1A_y = img_1B_sobel_y[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
+                                         C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
         H_inv_1B1A, J_1B1A =\
             stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B1A, img_grad_1B1A_x, img_grad_1B1A_y)
-        # store Hessian and Jacobian
         H1B1A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]   = H_inv_1B1A[:][:]
         J1B1A_all[ROW+side_len_half][COL+side_len_half][:][:][:]    = J_1B1A[:][:][:]
         
         ## ========== 2B2A ==========##
-        len_2B2A = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
+        side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
         C2B_subset_center_pt = np.array((C2_B_x,C2_B_y), dtype=np.float64)
-        # update img_2B_sub
-        img_2B_sub = stereo_vision.DIC.python.ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, img_2B_rec_gray, C2B_subset_center_pt)
-        # padding
-        pad = len_2B2A + 1  # Sobel need more 1 pixel to expand boarder
+        img_2B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, img_2B_rec_gray, C2B_subset_center_pt)
+        
+        pad = side_len_2B2A_half + 1  # Sobel need more 1 pixel to expand boarder
         img_2B_sub_pad = cv.copyMakeBorder(img_2B_sub, pad, pad, pad, pad, borderType=cv.BORDER_REFLECT)
         img_2B_sobel_y = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 0, 1)*0.125 # y方向
         img_2B_sobel_x = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 1, 0)*0.125 # x方向
-        # image gradient of 2B2A
         img_grad_2B2A_y = img_2B_sobel_y[pad:-pad, pad:-pad]
         img_grad_2B2A_x = img_2B_sobel_x[pad:-pad, pad:-pad]
         
@@ -289,7 +293,6 @@ for img_idx in range(1,2,1):
     else:
         print(f"[ERROR] TEST_MODE_EN={CF_user.TEST_MODE_EN} (Invalid!)")
 
-    # check path
     if not os.path.exists(img_1A_path):
         print(f"[ERROR] img_1A_path not found: {img_1A_path}")
     if not os.path.exists(img_2A_path):
@@ -301,25 +304,21 @@ for img_idx in range(1,2,1):
     img_1A = cv.imread(str(img_1A_path))
     img_2A = cv.imread(str(img_2A_path))
     
-    # rotate image
     if CF_user.TEST_ROTATE_IMG_EN == 1:
         img_1A = rotate_image(img_1A, -90)
         img_2A = rotate_image(img_2A, 90)
     
-    # image rectification
     if CF_user.TEST_REC_IMG_EN == 1:
         img_1A_rec, img_2A_rec = img_cal.undistortRectify(img_1A, img_2A)
     else:
         img_1A_rec = img_1A
         img_2A_rec = img_2A
     
-    # Gaussian blur
     if CF_user.TEST_GAUSSIANBLUR_EN == 1:
         img_1A_rec = cv.GaussianBlur(img_1A_rec, (3,3), sigmaX=1, sigmaY=1)
         img_2A_rec = cv.GaussianBlur(img_2A_rec, (3,3), sigmaX=1, sigmaY=1)
         print("Applied Gaussian blur!")
     
-    # Convert to gray image
     img_1A_rec_gray = cv.cvtColor(img_1A_rec, cv.COLOR_BGR2GRAY)
     img_2A_rec_gray = cv.cvtColor(img_2A_rec, cv.COLOR_BGR2GRAY)
     img_1A_rec_gray = img_1A_rec_gray.astype(np.double)
@@ -327,7 +326,6 @@ for img_idx in range(1,2,1):
     
     start2 = time.time()
     
-    # Track points
     for ROW in range(-side_len_half, side_len_half + 1, 1):
         for COL in range(-side_len_half, side_len_half + 1, 1):
             C1_B_y = C1B_points[ROW+side_len_half][COL+side_len_half][0] #integer
@@ -336,50 +334,50 @@ for img_idx in range(1,2,1):
             C2_B_x = C2B_points[ROW+side_len_half][COL+side_len_half][1] #decimal
             
             ## ========== 1B1A ========== ##
-            # Time start
             start = time.time()
             start_1B1A = time.time()
 
             H_inv_1B1A[:][:] = H1B1A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
             J_1B1A[:][:][:] = J1B1A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
+            img_1B_sub = img_1B_sub_zone[ROW+side_len_half][COL+side_len_half]
 
-            C1_A_x, C1_A_y =\
-            stereo_vision.DIC.python.DIC_ICGN.run_DIC_1B1A(img_1B_rec_gray,
-                                                        img_1A_rec_gray,
-                                                        C1_B_x,
-                                                        C1_B_y,
-                                                        CF_user.TEST_SUBSET_SIZE_1B1A,
-                                                        H_inv_1B1A,
-                                                        J_1B1A,
-                                                        translate_1B2B,
-                                                        CF_user.PSO_population,
-                                                        DIC_search_pt_type.normal)
-            # Time end!
+            dic_config = DIC_config (
+                coarse_method       = Coarse_Search_Method.PSO,
+                dic_image           = DIC_Image(ref = img_1B_rec_gray, cur = img_1A_rec_gray),
+                img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
+                init_param          = Stereo_DIC_Init_Param(translate = None),
+                subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
+                subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
+                img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
+                pso_config          = PSO_Config(CF_user.PSO_population),
+                search_type         = DIC_search_pt_type.normal
+            )
+            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config)
+
             end_1B1A = time.time()
             time_1B1A = end_1B1A - start_1B1A
             # print('time_1B1A:',time_1B1A)
             
             ## ========== 2B2A ========== ##
-            # Time start 2B2A
             start_2B2A = time.time()
-            img_2B_sub = img_2B_sub_zone[ROW+side_len_half][COL+side_len_half]
-            # Hessian & Jacobian
+        
             H_inv_2B2A[:][:] = H2B2A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
             J_2B2A[:][:][:] = J2B2A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
+            img_2B_sub = img_2B_sub_zone[ROW+side_len_half][COL+side_len_half]
             
-            C2_A_x, C2_A_y =\
-            stereo_vision.DIC.python.DIC_ICGN.run_DIC_2B2A(img_2A_rec_gray,
-                                                        img_2A_rec_gray,
-                                                        C2_B_x,
-                                                        C2_B_y,
-                                                        CF_user.TEST_SUBSET_SIZE_2B2A,
-                                                        H_inv_2B2A,
-                                                        J_2B2A,
-                                                        translate_1B2B,
-                                                        CF_user.PSO_population,
-                                                        img_2B_sub,
-                                                        DIC_search_pt_type.normal)
-            # Time end!
+            dic_config = DIC_config (
+                coarse_method       = Coarse_Search_Method.PSO,
+                dic_image           = DIC_Image(ref = img_2B_rec_gray, cur = img_2A_rec_gray),
+                img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C2_B_x, pt_y=C2_B_y),
+                init_param          = Stereo_DIC_Init_Param(translate = None),
+                subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
+                subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
+                img_grad            = Img_Grad_Info(H_inv_mat=H_inv_2B2A, J_mat=J_2B2A),
+                pso_config          = PSO_Config(CF_user.PSO_population),
+                search_type         = DIC_search_pt_type.normal
+            )
+            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config)
+
             end_2B2A = time.time()
             time_2B2A = end_2B2A - start_2B2A
             # print('time_2B2A:',time_2B2A)
