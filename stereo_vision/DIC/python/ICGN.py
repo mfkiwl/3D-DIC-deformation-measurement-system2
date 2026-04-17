@@ -4,11 +4,7 @@ import numpy as np
 from ctypes import cdll, c_int, c_double, POINTER
 import os
 
-dll_path = f'{CF.BUILD_DIR}/dll/ICGN.dll'
-if not os.path.exists(dll_path):
-    print(f"file not found:{dll_path}")
-
-# update target_img_subset(subset_size_len * subset_size_len). if not deformed, skip warp_coef
+# update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
 def update_target_img_subset(subset_size_len, img, point_ini, warp_coef=None):
     img = np.asarray(img, dtype=np.float64)
     img_flat = img.flatten(order='C') # C:n row major

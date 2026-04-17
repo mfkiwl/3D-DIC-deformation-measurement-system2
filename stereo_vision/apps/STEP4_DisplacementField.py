@@ -193,10 +193,8 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
     for COL in range(-side_len_half, side_len_half + 1, 1):
         C1_B_x = int(CF_user.TEST_INTERVAL*COL + C1_B_x_ini)
         C1_B_y = int(CF_user.TEST_INTERVAL*ROW + C1_B_y_ini)
-
         C1B_points[ROW + side_len_half][COL + side_len_half][0] = C1_B_y
         C1B_points[ROW + side_len_half][COL + side_len_half][1] = C1_B_x
-
         ## ========== Compute image gradient ========== """
         # Image gradient of 1B2B
         len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
@@ -207,7 +205,7 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_gradient_x, img_gradient_y)
 
         C2_B_x, C2_B_y =\
-        stereo_vision.DIC.python.DIC_ICGN.run_DIC(img_1B_rec_gray,
+        stereo_vision.DIC.python.DIC_ICGN.run_DIC_init(img_1B_rec_gray,
                                                     img_2B_rec_gray,
                                                     C1_B_x,
                                                     C1_B_y,
@@ -277,7 +275,7 @@ cv.imshow('img_2B_rec', img_2B_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
-sys.exit(0)
+# sys.exit(0)
 
 dis_sum = 0
 for img_idx in range(1,2,1):
@@ -324,12 +322,14 @@ for img_idx in range(1,2,1):
     # Convert to gray image
     img_1A_rec_gray = cv.cvtColor(img_1A_rec, cv.COLOR_BGR2GRAY)
     img_2A_rec_gray = cv.cvtColor(img_2A_rec, cv.COLOR_BGR2GRAY)
+    img_1A_rec_gray = img_1A_rec_gray.astype(np.double)
+    img_2A_rec_gray = img_2A_rec_gray.astype(np.double)
     
     start2 = time.time()
     
     # Track points
-    for ROW in range(-side_len_half,side_len_half+1,1):
-        for COL in range(-side_len_half,side_len_half+1,1):
+    for ROW in range(-side_len_half, side_len_half + 1, 1):
+        for COL in range(-side_len_half, side_len_half + 1, 1):
             C1_B_y = C1B_points[ROW+side_len_half][COL+side_len_half][0] #integer
             C1_B_x = C1B_points[ROW+side_len_half][COL+side_len_half][1] #integer
             C2_B_y = C2B_points[ROW+side_len_half][COL+side_len_half][0] #decimal
@@ -339,18 +339,21 @@ for img_idx in range(1,2,1):
             # Time start
             start = time.time()
             start_1B1A = time.time()
-            # Hessian & Jacobian
+
             H_inv_1B1A[:][:] = H1B1A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
             J_1B1A[:][:][:] = J1B1A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
-            # Scan
-            C1_A_x, C1_A_y, Coef_1B1A =\
-                stereo_vision.DIC.python.DIC_1B1A.find_pt_1B1A(img_1B_rec_gray,
-                                                img_1A_rec_gray,
-                                                C1_B_x,
-                                                C1_B_y,
-                                                CF_user.TEST_SUBSET_SIZE_1B1A,
-                                                H_inv_1B1A,
-                                                J_1B1A)
+
+            C1_A_x, C1_A_y =\
+            stereo_vision.DIC.python.DIC_ICGN.run_DIC_1B1A(img_1B_rec_gray,
+                                                        img_1A_rec_gray,
+                                                        C1_B_x,
+                                                        C1_B_y,
+                                                        CF_user.TEST_SUBSET_SIZE_1B1A,
+                                                        H_inv_1B1A,
+                                                        J_1B1A,
+                                                        translate_1B2B,
+                                                        CF_user.PSO_population,
+                                                        DIC_search_pt_type.normal)
             # Time end!
             end_1B1A = time.time()
             time_1B1A = end_1B1A - start_1B1A
@@ -364,14 +367,18 @@ for img_idx in range(1,2,1):
             H_inv_2B2A[:][:] = H2B2A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
             J_2B2A[:][:][:] = J2B2A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
             
-            C2_A_x, C2_A_y, Coef_2B2A =\
-                stereo_vision.DIC.python.DIC_2B2A.find_pt_2B2A(img_2A_rec_gray,
-                                                C2_B_x,
-                                                C2_B_y,
-                                                CF_user.TEST_SUBSET_SIZE_2B2A,
-                                                H_inv_2B2A,
-                                                J_2B2A,
-                                                img_2B_sub)
+            C2_A_x, C2_A_y =\
+            stereo_vision.DIC.python.DIC_ICGN.run_DIC_2B2A(img_2A_rec_gray,
+                                                        img_2A_rec_gray,
+                                                        C2_B_x,
+                                                        C2_B_y,
+                                                        CF_user.TEST_SUBSET_SIZE_2B2A,
+                                                        H_inv_2B2A,
+                                                        J_2B2A,
+                                                        translate_1B2B,
+                                                        CF_user.PSO_population,
+                                                        img_2B_sub,
+                                                        DIC_search_pt_type.normal)
             # Time end!
             end_2B2A = time.time()
             time_2B2A = end_2B2A - start_2B2A
