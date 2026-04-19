@@ -11,7 +11,7 @@ from stereo_vision import config_user as CF_user
 import stereo_vision.tools.math.src.hessian
 import stereo_vision.DIC.python.ICGN as ICGN
 import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
-import stereo_vision.camera_calibration.src.image_calibration as img_cal
+import stereo_vision.camera_calibration.python.image_calibration as img_cal
 from stereo_vision.tools.vision.src.click_tool import click_recorder
 from stereo_vision.tools.vision.src.processor import rotate_image
 from stereo_vision.DIC.python.common import DIC_search_pt_type
