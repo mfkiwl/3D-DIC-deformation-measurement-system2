@@ -36,7 +36,7 @@ def run_DIC(dic_config: DIC_config):
        img_cur_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.double)
 
        # ===== measure interger displacment ===== 
-       lib = ctypes.CDLL(f"{CF.BUILD_DIR}/2D_DIC.dll")
+       lib = ctypes.CDLL(f"{CF.BUILD_DIR}/PSO.dll")
        # parm type
        lib.process_image.argtypes = [
               ctypes.POINTER(ctypes.c_double),    # ref_img

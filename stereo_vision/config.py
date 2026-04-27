@@ -1,12 +1,9 @@
 ## PATH
 import os
 import stereo_vision.config_user as CF_user
-current_file_path = os.path.abspath(__file__)
+current_file_path               = os.path.abspath(__file__)
 WORKSPACE                       = os.path.dirname(current_file_path)
 BUILD_DIR                       = os.path.join(WORKSPACE, "build")
-# FUNC_DIR                        = os.path.join(WORKSPACE, "function")
-# FUNC_ALGO_DIR                   = os.path.join(WORKSPACE, "function", "algorithm")
-# FUNC_INTERP_DIR                 = os.path.join(WORKSPACE, "function", "interpolation")
 IMAGE_DIR                       = os.path.join(WORKSPACE, "data")
 IMAGE_CAL_DIR                   = os.path.join(IMAGE_DIR, "Calibration")
 IMAGE_CAL_LEFT_DIR              = os.path.join(IMAGE_DIR, "Calibration", "StereoLeft")

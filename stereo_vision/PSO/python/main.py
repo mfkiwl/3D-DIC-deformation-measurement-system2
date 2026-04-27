@@ -2,7 +2,7 @@ import ctypes
 import numpy as np
 import cv2
 
-lib = ctypes.CDLL('./2D_DIC.dll')
+lib = ctypes.CDLL('./PSO.dll')
 
 # parm type
 lib.process_image.argtypes = [

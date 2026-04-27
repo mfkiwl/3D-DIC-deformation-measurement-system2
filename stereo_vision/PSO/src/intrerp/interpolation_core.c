@@ -1,7 +1,7 @@
 #include <math.h>
 
 int interp_safe_margin() {
-    return 1;  // bilinear 需要周圍 1 個像素
+    return 1;  // bilinear need padding 1 pixel
 }
 
 double bilinear(double *data, int width, int height, double x, double y) {
@@ -15,7 +15,7 @@ double bilinear(double *data, int width, int height, double x, double y) {
     if (x1 < 0) x1 = 0;
     if (y1 < 0) y1 = 0;
 
-    // 3. 計算目標點與左上角點的距離 (權重)
+    // 3. distance between target pt and left up pt (weight)
     double dx = x - x1;
     double dy = y - y1;
 
@@ -24,7 +24,7 @@ double bilinear(double *data, int width, int height, double x, double y) {
     double q12 = data[y2 * width + x1];
     double q22 = data[y2 * width + x2];
 
-    // 先在 X 方向做兩次線性插值，最後在 Y 方向做一次
+    //  X: 2 times linear interpolation. Y: 1 times
     double r1 = (1.0f - dx) * q11 + dx * q21;
     double r2 = (1.0f - dx) * q12 + dx * q22;
     double result = (1.0f - dy) * r1 + dy * r2;
