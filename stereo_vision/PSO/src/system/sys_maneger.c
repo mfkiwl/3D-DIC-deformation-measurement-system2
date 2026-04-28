@@ -1,6 +1,6 @@
 
-#include "include/system_comm.h"
-#include "include/DIC_comm.h"
+#include "system_comm.h"
+#include "DIC_comm.h"
 
 
 struct SYS_INFO *SYS_create() {

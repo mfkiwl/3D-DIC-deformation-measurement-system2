@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
-#include "include/system_comm.h"
-#include "include/DIC_comm.h"
-#include "include/PSO_comm.h"
+#include "system_comm.h"
+#include "DIC_comm.h"
+#include "PSO_comm.h"
 
 extern int interp_safe_margin();
 extern double bilinear(double *data, int width, int height, double x, double y);

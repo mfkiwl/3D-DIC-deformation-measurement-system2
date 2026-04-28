@@ -1,5 +1,5 @@
-#include "include/system_comm.h"
-#include "include/PSO_comm.h"
+#include "system_comm.h"
+#include "PSO_comm.h"
 #include <float.h>
 
 double double_rand_nor(void) {

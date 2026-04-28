@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "include/DIC_comm.h"
-#include "include/PSO_comm.h"
-#include "include/system_comm.h"
+#include "DIC_comm.h"
+#include "PSO_comm.h"
+#include "system_comm.h"
 
 int main(int argc, char *argv[]) {
     return 0;

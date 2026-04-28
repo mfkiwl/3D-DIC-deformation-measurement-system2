@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "include/image_comm.h"
-#include "include/DIC_comm.h"
+#include "image_comm.h"
+#include "DIC_comm.h"
 
 #define PSO_FAILURE         -1
 #define PSO_SUCCESS         0

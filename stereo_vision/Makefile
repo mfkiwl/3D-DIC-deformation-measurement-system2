@@ -1,20 +1,28 @@
 CC = gcc
 
-# define params (-Wall: show warnings, -g: add debug info, -I : srearch from root)
-CFLAGS = -Wall -g -I. -fPIC
-LDFLAGS = -lm -shared -Wl,--export-all-symbols
+# define params (-Wall: show warnings, -g: add debug info, -I : srearch from root)                       
+# compile params
+CFLAGS = -Wall -g -fPIC \
+	-I. \
+	-IPSO/include \
+	-IDIC/include \
+	-Itools/interpolation/include
+
+LDFLAGS = -lm -shared -Wl,--export-all-symbols      # link params
 
 BUILD_DIR            =      build
+
 OUTPUT_PSO           =      PSO.dll
 OUTPUT_INTERP        =      cubic_interp.dll
 OUTPUT_ICGN          =      ICGN.dll
+
 TARGET_PSO           =      build/$(OUTPUT_PSO)
 TARGET_INTERP        =      build/$(OUTPUT_INTERP)
 TARGET_ICGN          =      build/$(OUTPUT_ICGN)
 
 # define all source (find .c)
-SRCS_PSO             =      $(wildcard PSO/src/PSO_core.c) \
-                            $(wildcard PSO/src/PSO.c) \
+SRCS_PSO             =      $(wildcard PSO/src/core/PSO_core.c) \
+                            $(wildcard PSO/src/core/PSO.c) \
                             $(wildcard PSO/src/factory/PSO_factory.c) \
                             $(wildcard PSO/src/interp/interpolation_core.c) \
                             $(wildcard PSO/src/system/sys_maneger.c) \
@@ -31,20 +39,29 @@ HEADERS_INTERP       =      $(wildcard tools/interpolation/include/*.h)
 SRCS_ICGN            =      $(wildcard DIC/src/ICGN.c)
 HEADERS_ICGN         =      $(wildcard DIC/include/*.h)
 
-$(shell mkdir -p $(BUILD_DIR))
+check_files:
+	@echo "--- PSO Source Files ---"
+	@for %%f in ($(SRCS_PSO)) do @echo %%f
+	@echo "------------------------"
 
-all: $(TARGET_PSO) $(TARGET_INTERP) $(TARGET_ICGN)
+prepare:
+	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 
-$(TARGET_PSO): $(SRCS_PSO) $(HEADERS_PSO)
-	$(CC) $(CFLAGS) $(SRCS_PSO) -o $(TARGET_PSO) $(LDFLAGS)
+all: prepare check_files $(TARGET_PSO) $(TARGET_INTERP) $(TARGET_ICGN)
 
-$(TARGET_INTERP): $(SRCS_INTERP) $(HEADERS_INTERP)
-	$(CC) $(CFLAGS) $(SRCS_INTERP) -o $(TARGET_INTERP) $(LDFLAGS)
+$(TARGET_PSO): $(SRCS_PSO)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(TARGET_ICGN): $(SRCS_ICGN) $(HEADERS_ICGN)
-	$(CC) $(CFLAGS) $(SRCS_ICGN) -o $(TARGET_ICGN) $(LDFLAGS)
+$(TARGET_INTERP): $(SRCS_INTERP)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TARGET_ICGN): $(SRCS_ICGN)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 clean:
-	rm -f $(TARGET_PSO) $(TARGET_INTERP) $(TARGET_ICGN)
+	@if exist $(BUILD_DIR) del /f /q $(BUILD_DIR)\*.dll
 
 .PHONY: all clean
+
+# $^: source files
+# $@: target files

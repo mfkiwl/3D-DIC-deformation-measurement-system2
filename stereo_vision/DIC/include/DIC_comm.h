@@ -2,7 +2,7 @@
 #define DIC_COMM_H
 #include <stdlib.h>
 #include <stdint.h>
-#include "include/PSO_comm.h"
+#include "PSO_comm.h"
 
 #define square(x) ((x)*(x))
 
