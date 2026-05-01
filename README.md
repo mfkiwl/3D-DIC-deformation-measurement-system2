@@ -8,7 +8,7 @@ Stereo Digital Image Correlation (SDIC) is a non-contact optical measurement tec
 The example can measure the displacement of speckle pattern on rubber surface
 
   
-## HOW TO USE:
+## HOW TO RUN:
 ### STEP0: module installation
 * cv2
 * numpy
@@ -38,6 +38,12 @@ The example can measure the displacement of speckle pattern on rubber surface
 
 
 ### STEP4: measure the displacement of the surface on rubber
+
+* Execution  
+Run the following command from the project root directory (3D-DIC_measurement_system/):
+```
+python -m stereo_vision.apps.STEP4_DisplacementField
+```
 
 ![step4-1](https://github.com/Adia0322/Stereo-digital-image-correlation/assets/89566671/00580237-30d1-4ea6-938d-dc9a342d0589)
 

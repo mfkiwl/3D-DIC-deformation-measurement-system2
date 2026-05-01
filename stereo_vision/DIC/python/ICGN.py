@@ -2,7 +2,6 @@
 import stereo_vision.config as CF
 import numpy as np
 from ctypes import cdll, c_int, c_double, POINTER
-import os
 
 # update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
 def update_target_img_subset(subset_size_len, img, point_ini, warp_coef=None):

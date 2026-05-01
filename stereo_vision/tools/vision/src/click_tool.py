@@ -1,5 +1,5 @@
 import cv2 as cv
-
+import numpy as np
 class click_recorder:
     def __init__(self):
         self.x = None
@@ -28,3 +28,7 @@ class click_recorder:
             cv.putText(img, f'{x},{y}', (x+10, y-10), 
                        cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
             cv.imshow('img_2B_rec_temp', img)
+
+
+def get_click_point(img, windows_name, text):
+    tmp_show = np.copy(img)

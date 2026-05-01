@@ -1,6 +1,5 @@
 
 print("\n<< Stereo_DIC_PSO_ICGN >>")
-
 import numpy as np
 import cv2 as cv
 import os
@@ -12,8 +11,9 @@ import stereo_vision.tools.math.src.hessian
 import stereo_vision.DIC.python.ICGN as ICGN
 import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
 import stereo_vision.camera_calibration.python.image_calibration as img_cal
+from stereo_vision.DIC.python.DIC_session import create_session
 from stereo_vision.tools.vision.src.click_tool import click_recorder
-from stereo_vision.tools.vision.src.processor import rotate_image
+from stereo_vision.tools.vision.src.processor import rotate_image, extract_patch_bicubic
 from stereo_vision.DIC.python.common import DIC_search_pt_type
 
 from stereo_vision.config_DIC import (
@@ -22,86 +22,55 @@ from stereo_vision.config_DIC import (
     Img_Grad_Info, Coarse_Search_Method, PSO_Config
 )
 
+from stereo_vision.DIC.python.DIC_session import (
+    DIC_user_config, Stereo_DIC_session,
+    create_session, img_buffer, DIC_buffer, system_config,
+)
 
-# in-plane:0, out-of-plane:1
-if CF_user.TEST_MODE_EN == 0:
-    force_direction = str('in')
-else:
-    force_direction = str('out')
+## Set the number of analysis points.
+pt_mat_side_len = int(np.sqrt(CF_user.TEST_POINT_ARRAY))
+pt_mat_side_len_half = int((pt_mat_side_len - 1) / 2)
 
-# reference image path
+# initial session
 file_name = f"{CF_user.LOAD_MIN}_{CF_user.LOAD_MAX}kg_image1.jpg"
-if CF_user.TEST_MODE_EN == 0:
-    img_1B_path = os.path.join(CF.IMAGE_TARGET_IN_CAM1_DIR, file_name)
-    img_2B_path = os.path.join(CF.IMAGE_TARGET_IN_CAM2_DIR, file_name)
-elif CF_user.TEST_MODE_EN == 1:
-    img_1B_path = os.path.join(CF.IMAGE_TARGET_OUT_CAM1_DIR, file_name)
-    img_2B_path = os.path.join(CF.IMAGE_TARGET_OUT_CAM2_DIR, file_name)
-else:
-    print(f"[ERROR] TEST_MODE_EN={CF_user.TEST_MODE_EN} (Invalid!)")
-
-# check path
-if not os.path.exists(img_1B_path):
-    print(f"[ERROR] img_1B_path not found: {img_1B_path}")
-if not os.path.exists(img_2B_path):
-    print(f"[ERROR] img_2B_path not found: {img_2B_path}")
-
-print(f"img_1B_path: {img_1B_path}")
-print(f"img_2B_path: {img_2B_path}\n")
-
-img_1B = cv.imread(str(img_1B_path))
-img_2B = cv.imread(str(img_2B_path))
-if img_1B is None or img_2B is None:
-    print("[ERROR] fail to read image!")
-    exit(1)
-
-if CF_user.TEST_ROTATE_IMG_EN == 1:
-    img_1B = rotate_image(img_1B, -90)
-    img_2B = rotate_image(img_2B, 90)
-
-## image rectification
-if CF_user.TEST_REC_IMG_EN == 1:
-    img_1B_rec, img_2B_rec = img_cal.undistortRectify(img_1B, img_2B)
-else:
-    img_1B_rec = img_1B
-    img_2B_rec = img_2B
-
-## copy rec images
-img_1B_rec_temp = np.copy(img_1B_rec)
-img_2B_rec_temp = np.copy(img_2B_rec)
+config = DIC_user_config(pt_mat_side_len, CF_user.TEST_SUBSET_SIZE_1B1A, CF_user.TEST_SUBSET_SIZE_2B2A)
+session = create_session(config)
+(
+    session.load_stereo_images_ref(file_name)
+            .pre_process()
+            .get_img_sobel()
+)
 
 ## Select first point in left image
-cv.putText(img_1B_rec_temp, 'set a reference point on img_1B', (20, 60),\
+cv.putText(session.img_buf.img1_ref_rec_show, 'set a reference point on img_1B', (20, 60),\
             cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-cv.namedWindow("img_1B_rec_temp", cv.WINDOW_NORMAL)
-cv.namedWindow("img_2B_rec_temp", cv.WINDOW_NORMAL)
-cv.imshow("img_1B_rec_temp", img_1B_rec_temp)
-cv.imshow("img_2B_rec_temp", img_2B_rec_temp)
+cv.namedWindow("session.img_buf.img1_ref_rec_show", cv.WINDOW_NORMAL)
+cv.namedWindow("session.img_buf.img2_ref_rec_show", cv.WINDOW_NORMAL)
+cv.imshow("session.img_buf.img1_ref_rec_show", session.img_buf.img1_ref_rec_show)
+cv.imshow("session.img_buf.img2_ref_rec_show", session.img_buf.img2_ref_rec_show)
 
 coor_1B = click_recorder()
-print('Please set a reference point in img_1B_rec_temp by clicking on the image.')
-cv.setMouseCallback('img_1B_rec_temp', coor_1B.callback_cam1, img_1B_rec_temp)
+print('Please set a reference point in session.img_buf.img1_ref_rec_show by clicking on the image.')
+cv.setMouseCallback('session.img_buf.img1_ref_rec_show', coor_1B.callback_cam1, session.img_buf.img1_ref_rec_show)
 cv.waitKey(0) 
 cv.destroyAllWindows()
 print("done\n")
 
 ## Select corresponding points in right image
-cv.putText(img_2B_rec_temp, 'set a corresponding point on img_2B', (20, 60),\
+cv.putText(session.img_buf.img2_ref_rec_show, 'set a corresponding point on img_2B', (20, 60),\
             cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-cv.namedWindow("img_1B_rec_temp", cv.WINDOW_NORMAL)
-cv.namedWindow("img_2B_rec_temp", cv.WINDOW_NORMAL)
-cv.imshow("img_1B_rec_temp", img_1B_rec_temp)
-cv.imshow("img_2B_rec_temp", img_2B_rec_temp)
+cv.namedWindow("session.img_buf.img1_ref_rec_show", cv.WINDOW_NORMAL)
+cv.namedWindow("session.img_buf.img2_ref_rec_show", cv.WINDOW_NORMAL)
+cv.imshow("session.img_buf.img1_ref_rec_show", session.img_buf.img1_ref_rec_show)
+cv.imshow("session.img_buf.img2_ref_rec_show", session.img_buf.img2_ref_rec_show)
 
 coor_2B = click_recorder()
-print('Please set a reference point in img_2B_rec_temp by clicking on the image.')
-cv.setMouseCallback('img_2B_rec_temp', coor_2B.callback_cam2, img_2B_rec_temp)
+print('Please set a reference point in session.img_buf.img2_ref_rec_show by clicking on the image.')
+cv.setMouseCallback('session.img_buf.img2_ref_rec_show', coor_2B.callback_cam2, session.img_buf.img2_ref_rec_show)
 cv.waitKey(0) 
 cv.destroyAllWindows()
 
-del img_1B_rec_temp # free memory
-del img_2B_rec_temp
-print("done\n")
+session.free_show_image()
 
 ## Read the image calibration file and obtain the projection matrix.
 cv_file = cv.FileStorage()
@@ -110,10 +79,6 @@ Q = cv_file.getNode('Q').mat()
 cv_file.release()
 
 """ =============== parameters ==============="""
-## Set the number of analysis points.
-side_len = int(np.sqrt(CF_user.TEST_POINT_ARRAY))
-side_len_half = int((side_len - 1) / 2)
-
 # start point : (C1_B_x_ini, C1_B_y_ini)
 C1_B_x_ini = coor_1B.x
 C1_B_y_ini = coor_1B.y
@@ -149,43 +114,6 @@ baseline = 1/Q[3][2]            # baseline (unit:mm)
 principal_x = -Q[0][3]          # The pt center coor of the camera.
 principal_y = -Q[1][3]          # The pt center coor of the camera.
 
-print("Pre-processing...")
-if CF_user.TEST_GAUSSIANBLUR_EN == 1:
-    img_1B_rec = cv.GaussianBlur(img_1B_rec, (3,3), sigmaX=1, sigmaY=1)
-    img_2B_rec = cv.GaussianBlur(img_2B_rec, (3,3), sigmaX=1, sigmaY=1)
-    print("TEST_GAUSSIANBLUR_EN: 1")
-
-""" ===== Compute image gradient Part1 ====="""
-img_1B_rec_gray = cv.cvtColor(img_1B_rec, cv.COLOR_BGR2GRAY) # Convert to gray image
-img_2B_rec_gray = cv.cvtColor(img_2B_rec, cv.COLOR_BGR2GRAY)
-height, width = img_2B_rec_gray.shape
-
-# precompute the img_bef image gradient by Sobel operator
-# camera1 bef_image (0.125 for normalizing)
-img_1B_sobel_y = cv.Sobel(img_1B_rec_gray, cv.CV_32F, 0, 1)*0.125
-img_1B_sobel_x = cv.Sobel(img_1B_rec_gray, cv.CV_32F, 1, 0)*0.125
-
-img_1B_rec_gray = img_1B_rec_gray.astype(np.double)
-img_2B_rec_gray = img_2B_rec_gray.astype(np.double)
-
-# storage area
-C1B_points          = np.zeros((side_len,side_len,2), dtype=int)
-C2B_points          = np.zeros((side_len,side_len,2), dtype=np.double)
-WC_bef_zone         = np.zeros((side_len,side_len,3), dtype=np.double)
-WC_aft_zone         = np.zeros((side_len,side_len,3), dtype=np.double)
-H1B1A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
-H2B2A_inv_all       = np.zeros((side_len,side_len,6,6), dtype=np.double)
-J1B1A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A,6), dtype=np.double)
-J2B2A_all           = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A,6), dtype=np.double)
-img_1B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_1B1A,CF_user.TEST_SUBSET_SIZE_1B1A), dtype=np.double)
-img_2B_sub_zone     = np.zeros((side_len,side_len,CF_user.TEST_SUBSET_SIZE_2B2A,CF_user.TEST_SUBSET_SIZE_2B2A), dtype=np.double)
-disM                = np.zeros((side_len,side_len,3), dtype=np.double)
-disM_out            = np.zeros((side_len,side_len), dtype=np.double)
-disM_in_1           = np.zeros((side_len,side_len), dtype=np.double)
-disM_in_2           = np.zeros((side_len,side_len), dtype=np.double)
-stress_in           = np.zeros((side_len,side_len), dtype=np.double)
-stress_out          = np.zeros((side_len,side_len), dtype=np.double)
-
 print(f"C1_B_x_ini: {C1_B_x_ini}")
 print(f"C1_B_y_ini: {C1_B_y_ini}")
 print(f"C2_B_x_ini: {C2_B_x_ini}")
@@ -193,27 +121,26 @@ print(f"C2_B_y_ini: {C2_B_y_ini}")
 print("")
 
 ## Corrsponding points
-for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
-    for COL in range(-side_len_half, side_len_half + 1, 1):
+for ROW in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1): # -2 ~ +2
+    for COL in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1):
         C1_B_x = int(CF_user.TEST_INTERVAL*COL + C1_B_x_ini)
         C1_B_y = int(CF_user.TEST_INTERVAL*ROW + C1_B_y_ini)
-        C1B_points[ROW + side_len_half][COL + side_len_half][0] = C1_B_y
-        C1B_points[ROW + side_len_half][COL + side_len_half][1] = C1_B_x
+        session.dic_buf.C1B_points[ROW + pt_mat_side_len_half][COL + pt_mat_side_len_half][0] = C1_B_y
+        session.dic_buf.C1B_points[ROW + pt_mat_side_len_half][COL + pt_mat_side_len_half][1] = C1_B_x
         ## ========== Compute image gradient ========== """
-        # Image gradient of 1B2B
         subset_side_len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
-        img_grad_1B2B_y = img_1B_sobel_y[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
-                                         C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
-        img_grad_1B2B_x = img_1B_sobel_x[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
-                                         C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
+        img_grad_1B2B_y = session.img_buf.img1_ref_sobel_y[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
+                                                           C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
+        img_grad_1B2B_x = session.img_buf.img1_ref_sobel_x[C1_B_y - subset_side_len_1B2B_half:C1_B_y + subset_side_len_1B2B_half + 1,\
+                                                           C1_B_x - subset_side_len_1B2B_half:C1_B_x + subset_side_len_1B2B_half + 1]
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_grad_1B2B_x, img_grad_1B2B_y)
         C1B_subset_center_pt = np.array((C1_B_x,C1_B_y), dtype=np.float64)
-        img_1B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, img_1B_rec_gray, C1B_subset_center_pt)
-        img_1B_sub_zone[ROW+side_len_half][COL+side_len_half][:][:] = img_1B_sub
-
+        img_1B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt)
+        session.dic_buf.img_1B_sub_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:] = img_1B_sub
+        
         dic_config = DIC_config (
             coarse_method       = Coarse_Search_Method.PSO,
-            dic_image           = DIC_Image(ref = img_1B_rec_gray, cur = img_2B_rec_gray),
+            dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img2_ref_rec_gray),
             img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
             init_param          = Stereo_DIC_Init_Param(translate = translate_1B2B),
             subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B2B),
@@ -224,8 +151,8 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
         )
         C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config)
 
-        C2B_points[ROW+side_len_half][COL+side_len_half][0] = C2_B_y
-        C2B_points[ROW+side_len_half][COL+side_len_half][1] = C2_B_x
+        session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = C2_B_y
+        session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = C2_B_x
         ## initial 3d coordinate
         disparity_1B2B = (C1_B_x - C2_B_x) # get disparity: xl-xr (unit:pixel)
         disparity_1B2B_reci = np.divide(1, disparity_1B2B)
@@ -233,117 +160,73 @@ for ROW in range(-side_len_half, side_len_half + 1, 1): # -2 ~ +2
         X_origin = (C1_B_x - principal_x) * baseline * disparity_1B2B_reci
         Y_origin = (C1_B_y - principal_y) * baseline * disparity_1B2B_reci
         Z_origin = focal * baseline * disparity_1B2B_reci
-        WC_bef_zone[ROW+side_len_half][COL+side_len_half][0] = X_origin
-        WC_bef_zone[ROW+side_len_half][COL+side_len_half][1] = Y_origin
-        WC_bef_zone[ROW+side_len_half][COL+side_len_half][2] = Z_origin
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_origin
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_origin
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_origin
         
         # pre-calculate Hessian & Jacobian for 1B1A & 2B2A
-        # ===== 1B1A ===== ##
+        # ===== 1B1A ===== #
         subset_side_len_1B1A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B1A-1))
-        img_grad_1B1A_x = img_1B_sobel_x[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
-                                         C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
-        img_grad_1B1A_y = img_1B_sobel_y[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
-                                         C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
-        H_inv_1B1A, J_1B1A =\
-            stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B1A, img_grad_1B1A_x, img_grad_1B1A_y)
-        H1B1A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]   = H_inv_1B1A[:][:]
-        J1B1A_all[ROW+side_len_half][COL+side_len_half][:][:][:]    = J_1B1A[:][:][:]
+        img_grad_1B1A_x = session.img_buf.img1_ref_sobel_x[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
+                                                           C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
+        img_grad_1B1A_y = session.img_buf.img1_ref_sobel_y[C1_B_y - subset_side_len_1B1A_half:C1_B_y + subset_side_len_1B1A_half+1,\
+                                                           C1_B_x - subset_side_len_1B1A_half:C1_B_x + subset_side_len_1B1A_half+1]
+        H_inv_1B1A, J_1B1A = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B1A, img_grad_1B1A_x, img_grad_1B1A_y)
+        session.dic_buf.H1B1A_inv_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:]   = H_inv_1B1A[:][:]
+        session.dic_buf.J1B1A_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:][:]    = J_1B1A[:][:][:]
         
-        ## ========== 2B2A ==========##
-        side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
+        # ===== 2B2A ===== #
+        subset_side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
         C2B_subset_center_pt = np.array((C2_B_x,C2_B_y), dtype=np.float64)
-        img_2B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, img_2B_rec_gray, C2B_subset_center_pt)
+        img_2B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt)
+        img_grad_2B2A_x = extract_patch_bicubic(session.img_buf.img2_ref_sobel_x, C1_B_x, C1_B_y, CF_user.TEST_SUBSET_SIZE_2B2A)
+        img_grad_2B2A_y = extract_patch_bicubic(session.img_buf.img2_ref_sobel_y, C1_B_x, C1_B_y, CF_user.TEST_SUBSET_SIZE_2B2A)
+        H_inv_2B2A, J_2B2A = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_2B2A, img_grad_2B2A_x, img_grad_2B2A_y) 
+        session.dic_buf.H2B2A_inv_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:]   = H_inv_2B2A[:][:]
+        session.dic_buf.J2B2A_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:][:]    = J_2B2A[:][:][:]
+        # save img_2B_sub for each point
+        session.dic_buf.img_2B_sub_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:] = img_2B_sub
         
-        pad = side_len_2B2A_half + 1  # Sobel need more 1 pixel to expand boarder
-        img_2B_sub_pad = cv.copyMakeBorder(img_2B_sub, pad, pad, pad, pad, borderType=cv.BORDER_REFLECT)
-        img_2B_sobel_y = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 0, 1)*0.125 # y方向
-        img_2B_sobel_x = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 1, 0)*0.125 # x方向
-        img_grad_2B2A_y = img_2B_sobel_y[pad:-pad, pad:-pad]
-        img_grad_2B2A_x = img_2B_sobel_x[pad:-pad, pad:-pad]
-        
-        H_inv_2B2A, J_2B2A =\
-            stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_2B2A, img_grad_2B2A_x, img_grad_2B2A_y) 
-        # store Hessian and Jacobian
-        H2B2A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]   = H_inv_2B2A[:][:]
-        J2B2A_all[ROW+side_len_half][COL+side_len_half][:][:][:]    = J_2B2A[:][:][:]
-
-        # save img_2B_sub for each point (ex:save 25 img_2B_sub for measuring 25 points)
-        img_2B_sub_zone[ROW+side_len_half][COL+side_len_half][:][:] = img_2B_sub
-        img_1B_rec = cv.circle(img_1B_rec, (int(C1_B_x), int(C1_B_y)), 5,\
+        session.img_buf.img1_ref_rec = cv.circle(session.img_buf.img1_ref_rec, (int(C1_B_x), int(C1_B_y)), 5,\
                                 (0, 255, 255), 1)  
-        img_2B_rec = cv.circle(img_2B_rec, (int(C2_B_x), int(C2_B_y)), 5,\
+        session.img_buf.img2_ref_rec = cv.circle(session.img_buf.img2_ref_rec, (int(C2_B_x), int(C2_B_y)), 5,\
                                 (0, 255, 255), 1)
 
-cv.imshow('img_1B_rec', img_1B_rec)
-cv.imshow('img_2B_rec', img_2B_rec)
+cv.imshow('session.img_buf.img1_ref_rec', session.img_buf.img1_ref_rec)
+cv.imshow('session.img_buf.img2_ref_rec', session.img_buf.img2_ref_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
 # sys.exit(0)
 
 dis_sum = 0
-for img_idx in range(1,2,1):
+for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
     loaded_file_name = f"{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image{img_idx}.jpg"
-    if CF_user.TEST_MODE_EN == 0:
-        img_1A_path = os.path.join(CF.IMAGE_TARGET_IN_CAM1_DIR, loaded_file_name)
-        img_2A_path = os.path.join(CF.IMAGE_TARGET_IN_CAM2_DIR, loaded_file_name)
-    elif CF_user.TEST_MODE_EN == 1:
-        img_1A_path = os.path.join(CF.IMAGE_TARGET_OUT_CAM1_DIR, loaded_file_name)
-        img_2A_path = os.path.join(CF.IMAGE_TARGET_OUT_CAM2_DIR, loaded_file_name)
-    else:
-        print(f"[ERROR] TEST_MODE_EN={CF_user.TEST_MODE_EN} (Invalid!)")
+    print(f"loaded_file_name: {loaded_file_name}")
+    (
+        session.load_stereo_images_cur(loaded_file_name)
+                .pre_process_cur()
+    )
 
-    if not os.path.exists(img_1A_path):
-        print(f"[ERROR] img_1A_path not found: {img_1A_path}")
-    if not os.path.exists(img_2A_path):
-        print(f"[ERROR] img_2A_path not found: {img_2A_path}")
-    
-    print(f"img_1A_path: {img_1A_path}")
-    print(f"img_2A_path: {img_2A_path}")
-
-    img_1A = cv.imread(str(img_1A_path))
-    img_2A = cv.imread(str(img_2A_path))
-    
-    if CF_user.TEST_ROTATE_IMG_EN == 1:
-        img_1A = rotate_image(img_1A, -90)
-        img_2A = rotate_image(img_2A, 90)
-    
-    if CF_user.TEST_REC_IMG_EN == 1:
-        img_1A_rec, img_2A_rec = img_cal.undistortRectify(img_1A, img_2A)
-    else:
-        img_1A_rec = img_1A
-        img_2A_rec = img_2A
-    
-    if CF_user.TEST_GAUSSIANBLUR_EN == 1:
-        img_1A_rec = cv.GaussianBlur(img_1A_rec, (3,3), sigmaX=1, sigmaY=1)
-        img_2A_rec = cv.GaussianBlur(img_2A_rec, (3,3), sigmaX=1, sigmaY=1)
-        print("Applied Gaussian blur!")
-    
-    img_1A_rec_gray = cv.cvtColor(img_1A_rec, cv.COLOR_BGR2GRAY)
-    img_2A_rec_gray = cv.cvtColor(img_2A_rec, cv.COLOR_BGR2GRAY)
-    img_1A_rec_gray = img_1A_rec_gray.astype(np.double)
-    img_2A_rec_gray = img_2A_rec_gray.astype(np.double)
-    
     start2 = time.time()
-    
-    for ROW in range(-side_len_half, side_len_half + 1, 1):
-        for COL in range(-side_len_half, side_len_half + 1, 1):
-            C1_B_y = C1B_points[ROW+side_len_half][COL+side_len_half][0] #integer
-            C1_B_x = C1B_points[ROW+side_len_half][COL+side_len_half][1] #integer
-            C2_B_y = C2B_points[ROW+side_len_half][COL+side_len_half][0] #decimal
-            C2_B_x = C2B_points[ROW+side_len_half][COL+side_len_half][1] #decimal
-            
-            ## ========== 1B1A ========== ##
+    for ROW in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1):
+        for COL in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1):
+            C1_B_y = session.dic_buf.C1B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] #integer
+            C1_B_x = session.dic_buf.C1B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] #integer
+            C2_B_y = session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] #decimal
+            C2_B_x = session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] #decimal
+
+            # ===== 1B1A ===== #
             start = time.time()
             start_1B1A = time.time()
 
-            H_inv_1B1A[:][:] = H1B1A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
-            J_1B1A[:][:][:] = J1B1A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
-            img_1B_sub = img_1B_sub_zone[ROW+side_len_half][COL+side_len_half]
+            H_inv_1B1A[:][:]        = session.dic_buf.H1B1A_inv_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:]
+            J_1B1A[:][:][:]         = session.dic_buf.J1B1A_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:][:]
+            img_1B_sub              = session.dic_buf.img_1B_sub_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half]
 
             dic_config = DIC_config (
                 coarse_method       = Coarse_Search_Method.PSO,
-                dic_image           = DIC_Image(ref = img_1B_rec_gray, cur = img_1A_rec_gray),
+                dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img1_cur_rec_gray),
                 img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
                 init_param          = Stereo_DIC_Init_Param(translate = None),
                 subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
@@ -358,19 +241,22 @@ for img_idx in range(1,2,1):
             time_1B1A = end_1B1A - start_1B1A
             # print('time_1B1A:',time_1B1A)
             
-            ## ========== 2B2A ========== ##
+            # ===== 2B2A ===== #
             start_2B2A = time.time()
         
-            H_inv_2B2A[:][:] = H2B2A_inv_all[ROW+side_len_half][COL+side_len_half][:][:]
-            J_2B2A[:][:][:] = J2B2A_all[ROW+side_len_half][COL+side_len_half][:][:][:]
-            img_2B_sub = img_2B_sub_zone[ROW+side_len_half][COL+side_len_half]
-            
+            H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:]
+            J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:][:]
+            img_2B_sub              = session.dic_buf.img_2B_sub_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half]
+            # print(f"img_2B_sub={img_2B_sub}")
+            # print('debugging...')
+            # sys.exit(0)
+
             dic_config = DIC_config (
                 coarse_method       = Coarse_Search_Method.PSO,
-                dic_image           = DIC_Image(ref = img_2B_rec_gray, cur = img_2A_rec_gray),
+                dic_image           = DIC_Image(ref = session.img_buf.img2_ref_rec_gray, cur = session.img_buf.img2_cur_rec_gray),
                 img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C2_B_x, pt_y=C2_B_y),
                 init_param          = Stereo_DIC_Init_Param(translate = None),
-                subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
+                subset_ref_info     = Subset_Info(img_2B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
                 subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_2B2A, J_mat=J_2B2A),
                 pso_config          = PSO_Config(CF_user.PSO_population),
@@ -391,15 +277,15 @@ for img_idx in range(1,2,1):
             Z_after = focal*baseline*disparity_1A2A_reci
             
             # Displacement between reference point and target point
-            WC_aft_zone[ROW+side_len_half][COL+side_len_half][0] = X_after
-            WC_aft_zone[ROW+side_len_half][COL+side_len_half][1] = Y_after
-            WC_aft_zone[ROW+side_len_half][COL+side_len_half][2] = Z_after
-            disM[ROW+side_len_half][COL+side_len_half][:] = WC_aft_zone[ROW+side_len_half][COL+side_len_half][:] - WC_bef_zone[ROW+side_len_half][COL+side_len_half][:]
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_after
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_after
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_after
+            session.dic_buf.disM[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] - session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:]
             # out:z, in1:x(right+), in2:y(down+)
-            dis_out = WC_aft_zone[ROW+side_len_half][COL+side_len_half][2]-WC_bef_zone[ROW+side_len_half][COL+side_len_half][2]
-            #dis_out2 = np.dot(disM[ROW+side_len_half][COL+side_len_half],nVector)
-            dis_in_1 = WC_aft_zone[ROW+side_len_half][COL+side_len_half][0]-WC_bef_zone[ROW+side_len_half][COL+side_len_half][0]
-            dis_in_2 = WC_aft_zone[ROW+side_len_half][COL+side_len_half][1]-WC_bef_zone[ROW+side_len_half][COL+side_len_half][1]
+            dis_out = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2]
+            #dis_out2 = np.dot(disM[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half],nVector)
+            dis_in_1 = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0]
+            dis_in_2 = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1]
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
             
             if CF_user.TEST_MODE_EN == 0: # in plane
@@ -409,28 +295,27 @@ for img_idx in range(1,2,1):
                 print(np.round(dis_out, 6))
                 dis_sum += dis_out
             
-            img_1A_rec = cv.circle(img_1A_rec, (int(C1_A_x), int(C1_A_y)), 5,\
-                                  (0, 255, 255), 1)  
-            img_2A_rec = cv.circle(img_2A_rec, (int(C2_A_x), int(C2_A_y)), 5,\
-                                  (0, 255, 255), 1)  
-            # Time end!
+            session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5,\
+                                                    (0, 255, 255), 1)  
+            session.img_buf.img2_cur_rec = cv.circle(session.img_buf.img2_cur_rec, (int(C2_A_x), int(C2_A_y)), 5,\
+                                                    (0, 255, 255), 1)  
+            
             end = time.time()
             total_time = end - start 
             
-            disM_out[ROW+side_len_half][COL+side_len_half] = dis_out
-            disM_in_1[ROW+side_len_half][COL+side_len_half] = dis_in_1
-            disM_in_2[ROW+side_len_half][COL+side_len_half] = dis_in_2
+            session.dic_buf.disM_out[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_out
+            session.dic_buf.disM_in_1[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_1
+            session.dic_buf.disM_in_2[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_2
 
     end2 = time.time()
     total_time2 = end2 - start2
     
-
-cv.imshow('img_1A_rec', img_1A_rec)
-cv.imshow('img_2A_rec', img_2A_rec)
+cv.imshow('img_1A_rec', session.img_buf.img1_cur_rec)
+cv.imshow('img_2A_rec', session.img_buf.img2_cur_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
-print('Average time per point: ', total_time/(CF_user.TEST_POINT_ARRAY*10))
-print('Average dis:',dis_sum/(img_idx*side_len*side_len))
+print('Average time per point: ', total_time / (CF_user.TEST_POINT_ARRAY*10))
+print('Average dis:', dis_sum / (CF_user.TEST_TARGET_IMG_CNT * CF_user.TEST_POINT_ARRAY))
 print("End")
 
