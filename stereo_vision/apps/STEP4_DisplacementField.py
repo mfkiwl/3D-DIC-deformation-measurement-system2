@@ -48,17 +48,15 @@ C2_B_x_ini, C2_B_y_ini = get_click_point(session.img_buf.img2_ref_rec_show, 'img
 session.free_show_image()
 session.get_reprojection_info()
 
-C1_B_x_ini = 468
-C1_B_y_ini = 273
-C2_B_x_ini = 164
-C2_B_y_ini = 259
-
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
+        row = ROW + pt_mat_len_half
+        col = COL + pt_mat_len_half
+
         C1_B_x = int(CF_user.TEST_INTERVAL*COL + C1_B_x_ini)
         C1_B_y = int(CF_user.TEST_INTERVAL*ROW + C1_B_y_ini)
-        session.dic_buf.C1B_points[ROW + pt_mat_len_half][COL + pt_mat_len_half][0] = C1_B_y
-        session.dic_buf.C1B_points[ROW + pt_mat_len_half][COL + pt_mat_len_half][1] = C1_B_x
+        session.dic_buf.C1B_points[row][col][0] = C1_B_y
+        session.dic_buf.C1B_points[row][col][1] = C1_B_x
         # ===== Image gradient =====
         subset_len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
         img_grad_1B2B_y = session.img_buf.img1_ref_sobel_y[C1_B_y - subset_len_1B2B_half:C1_B_y + subset_len_1B2B_half + 1,\
@@ -68,7 +66,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_grad_1B2B_x, img_grad_1B2B_y)
         C1B_subset_center_pt = np.array((C1_B_x,C1_B_y), dtype=np.float64)
         img_1B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt)
-        session.dic_buf.img_1B_sub_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:] = img_1B_sub
+        session.dic_buf.img_1B_sub_zone[row][col][:][:] = img_1B_sub
         
         dic_config = DIC_config (
             coarse_method       = Coarse_Search_Method.PSO,
@@ -82,18 +80,10 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             search_type         = DIC_search_pt_type.initial
         )
         C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config)
-
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
-        session.save_result(C2_B_x, C2_B_y, X_ref, Y_ref, Z_ref, )
-
-        session.dic_buf.C2B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][0] = C2_B_y
-        session.dic_buf.C2B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][1] = C2_B_x
+        session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
+        session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
         
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][0] = X_ref
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][1] = Y_ref
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][2] = Z_ref
-        
-        # pre-calculate Hessian & Jacobian for 1B1A & 2B2A
         # ===== 1B1A ===== #
         subset_len_1B1A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B1A-1))
         img_grad_1B1A_x = session.img_buf.img1_ref_sobel_x[C1_B_y - subset_len_1B1A_half:C1_B_y + subset_len_1B1A_half+1,\
@@ -101,8 +91,8 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         img_grad_1B1A_y = session.img_buf.img1_ref_sobel_y[C1_B_y - subset_len_1B1A_half:C1_B_y + subset_len_1B1A_half+1,\
                                                            C1_B_x - subset_len_1B1A_half:C1_B_x + subset_len_1B1A_half+1]
         H_inv_1B1A, J_1B1A = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B1A, img_grad_1B1A_x, img_grad_1B1A_y)
-        session.dic_buf.H1B1A_inv_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:]   = H_inv_1B1A[:][:]
-        session.dic_buf.J1B1A_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:][:]    = J_1B1A[:][:][:]
+        session.dic_buf.H1B1A_inv_all[row][col][:][:]   = H_inv_1B1A[:][:]
+        session.dic_buf.J1B1A_all[row][col][:][:][:]    = J_1B1A[:][:][:]
         
         # ===== 2B2A ===== #
         subset_side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
@@ -117,10 +107,10 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         img_grad_2B2A_x = img_2B_sobel_x[pad:-pad, pad:-pad]
         
         H_inv_2B2A, J_2B2A = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_2B2A, img_grad_2B2A_x, img_grad_2B2A_y) 
-        session.dic_buf.H2B2A_inv_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:]   = H_inv_2B2A[:][:]
-        session.dic_buf.J2B2A_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:][:]    = J_2B2A[:][:][:]
+        session.dic_buf.H2B2A_inv_all[row][col][:][:]   = H_inv_2B2A[:][:]
+        session.dic_buf.J2B2A_all[row][col][:][:][:]    = J_2B2A[:][:][:]
         # save img_2B_sub for each point
-        session.dic_buf.img_2B_sub_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:] = img_2B_sub
+        session.dic_buf.img_2B_sub_zone[row][col][:][:] = img_2B_sub
         
         session.img_buf.img1_ref_rec = cv.circle(session.img_buf.img1_ref_rec, (int(C1_B_x), int(C1_B_y)), 5,\
                                 (0, 255, 255), 1)  
@@ -131,8 +121,6 @@ cv.imshow('session.img_buf.img1_ref_rec', session.img_buf.img1_ref_rec)
 cv.imshow('session.img_buf.img2_ref_rec', session.img_buf.img2_ref_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
-
-# sys.exit(0)
 
 dis_sum = 0
 for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
@@ -146,18 +134,18 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
     start2 = time.time()
     for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
-            C1_B_y = session.dic_buf.C1B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][0] #integer
-            C1_B_x = session.dic_buf.C1B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][1] #integer
-            C2_B_y = session.dic_buf.C2B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][0] #decimal
-            C2_B_x = session.dic_buf.C2B_points[ROW+pt_mat_len_half][COL+pt_mat_len_half][1] #decimal
+            row = ROW + pt_mat_len_half
+            col = COL + pt_mat_len_half
+            C1_B_y, C1_B_x = session.dic_buf.C1B_points[row][col]
+            C2_B_y, C2_B_x = session.dic_buf.C2B_points[row][col]
 
             # ===== 1B1A ===== #
             start = time.time()
             start_1B1A = time.time()
 
-            H_inv_1B1A[:][:]        = session.dic_buf.H1B1A_inv_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:]
-            J_1B1A[:][:][:]         = session.dic_buf.J1B1A_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:][:]
-            img_1B_sub              = session.dic_buf.img_1B_sub_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half]
+            H_inv_1B1A[:][:]        = session.dic_buf.H1B1A_inv_all[row][col][:][:]
+            J_1B1A[:][:][:]         = session.dic_buf.J1B1A_all[row][col][:][:][:]
+            img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
 
             dic_config = DIC_config (
                 coarse_method       = Coarse_Search_Method.PSO,
@@ -179,9 +167,9 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             # ===== 2B2A ===== #
             start_2B2A = time.time()
         
-            H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:]
-            J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[ROW+pt_mat_len_half][COL+pt_mat_len_half][:][:][:]
-            img_2B_sub              = session.dic_buf.img_2B_sub_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half]
+            H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
+            J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[row][col][:][:][:]
+            img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
 
             dic_config = DIC_config (
                 coarse_method       = Coarse_Search_Method.PSO,
@@ -204,14 +192,12 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
             
             # Displacement between reference point and target point
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][0] = X_cur
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][1] = Y_cur
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][2] = Z_cur
-            session.result_buf.disM[ROW+pt_mat_len_half][COL+pt_mat_len_half][:] = session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][:] - session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][:]
+            session.dic_buf.WC_aft_zone[row][col] = (X_cur, Y_cur, Z_cur)
+            session.result_buf.disM[row][col][:] = session.dic_buf.WC_aft_zone[row][col][:] - session.dic_buf.WC_bef_zone[row][col][:]
             # out:z, in1:x(right+), in2:y(down+)
-            dis_out = session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][2]-session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][2]
-            dis_in_1 = session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][0]-session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][0]
-            dis_in_2 = session.dic_buf.WC_aft_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][1]-session.dic_buf.WC_bef_zone[ROW+pt_mat_len_half][COL+pt_mat_len_half][1]
+            dis_out = session.dic_buf.WC_aft_zone[row][col][2]-session.dic_buf.WC_bef_zone[row][col][2]
+            dis_in_1 = session.dic_buf.WC_aft_zone[row][col][0]-session.dic_buf.WC_bef_zone[row][col][0]
+            dis_in_2 = session.dic_buf.WC_aft_zone[row][col][1]-session.dic_buf.WC_bef_zone[row][col][1]
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
             
             if CF_user.TEST_MODE == Test_Mode.in_plane.value: # in plane
@@ -229,9 +215,9 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             end = time.time()
             total_time = end - start 
             
-            session.result_buf.disM_out[ROW+pt_mat_len_half][COL+pt_mat_len_half] = dis_out
-            session.result_buf.disM_in_1[ROW+pt_mat_len_half][COL+pt_mat_len_half] = dis_in_1
-            session.result_buf.disM_in_2[ROW+pt_mat_len_half][COL+pt_mat_len_half] = dis_in_2
+            session.result_buf.disM_out[row][col] = dis_out
+            session.result_buf.disM_in_1[row][col] = dis_in_1
+            session.result_buf.disM_in_2[row][col] = dis_in_2
 
     end2 = time.time()
     total_time2 = end2 - start2
@@ -241,7 +227,7 @@ cv.imshow('img_2A_rec', session.img_buf.img2_cur_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
-print('Average time per point: ', total_time / (CF_user.TEST_POINT_ARRAY*10))
+print('Average time per point: ', total_time / (CF_user.TEST_POINT_ARRAY * 10))
 print('Average dis:', dis_sum / (CF_user.TEST_TARGET_IMG_CNT * CF_user.TEST_POINT_ARRAY))
 print("End")
 
