@@ -46,6 +46,12 @@ CAL_ITERATION_TIMES             = 100
 CAL_ACCURACY                    = 0.0001
 CAL_SQUARE_SIZE                 = 8 # unit: mm
 
+# DIC
+DIC_ICGN_ACCURACY_INIT          = 0.1
+DIC_ICGN_ACCURACY               = 0.0001
+DIC_ICGN_CNT                    = 20
+
+
 class Test_Mode(Enum):
     in_plane            = 0
     out_of_plane        = 1

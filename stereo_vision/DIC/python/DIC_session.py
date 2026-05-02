@@ -129,15 +129,21 @@ class Stereo_DIC_session:
         self.cal_info.principal_x           = -Q[0][3]      # The pt center coor of the camera
         self.cal_info.principal_y           = -Q[1][3]      # The pt center coor of the camera
 
-    def disparity_to_3d_pt(self, cam1_x, cam1_y, cam2_x):
+    def build_dic_cfg():
+        return
+
+    def disparity_to_3d_pt(self, cam1_x, cam1_y, cam2_x, pt_type='pt_ref'):
         disparity = cam1_x - cam2_x # get disparity: xl-xr (unit:pixel)
         disparity_inv = np.divide(1, disparity)
         X = (cam1_x - self.cal_info.principal_x) * self.cal_info.baseline * disparity_inv
         Y = (cam1_y - self.cal_info.principal_y) * self.cal_info.baseline * disparity_inv
         Z = self.cal_info.focal * self.cal_info.baseline * disparity_inv
-        return X, Y, Z
+        return X, Y, Z 
 
-    
+    def save_result(self, C2_B_x, C2_B_y, X_ref, Y_ref, Z_ref):
+        return
+
+
     def free_show_image(self):
         self.img_buf.img1_ref_rec_show      = None
         self.img_buf.img2_ref_rec_show      = None

@@ -39,12 +39,12 @@ class Coarse_Search_Method(Enum):
 # summary
 @dataclass
 class DIC_config:
-    coarse_method:      Coarse_Search_Method
-    dic_image:          DIC_Image
-    img_ref_pt:         Img_Ref_Pt_Pos
-    init_param:         Stereo_DIC_Init_Param
-    subset_ref_info:    Subset_Info
-    subset_cur_info:    Subset_Info
-    img_grad:           Img_Grad_Info
-    pso_config:         PSO_Config
-    search_type:        int = 1
+    coarse_method:          Coarse_Search_Method
+    coarse_method_cfg:      PSO_Config
+    dic_image:              DIC_Image
+    img_ref_pt:             Img_Ref_Pt_Pos
+    init_param:             Stereo_DIC_Init_Param
+    subset_ref_info:        Subset_Info
+    subset_cur_info:        Subset_Info
+    img_grad:               Img_Grad_Info
+    search_type:            int = 1
