@@ -32,12 +32,12 @@ def run_Gaussian_blur(img, is_enable=False):
     img_processed = cv.GaussianBlur(img, (3,3), sigmaX=1, sigmaY=1)
     return img_processed
 
-def extract_patch_bicubic(img_sobel, x, y, size):
+def extract_patch_bicubic(img, x, y, size):
     if size % 2 == 0: 
         print(f"[WARNING] even number size: {size}!")
-    if img_sobel is None or img_sobel.size == 0:
+    if img is None or img.size == 0:
         return None
-    h, w = img_sobel.shape
+    h, w = img.shape
     half = size // 2
     x_min, x_max = half, w - 1 - half
     y_min, y_max = half, h - 1 - half
@@ -52,7 +52,7 @@ def extract_patch_bicubic(img_sobel, x, y, size):
     map_y = grid_y.astype(np.float32)
 
     patch = cv.remap(
-        img_sobel,
+        img,
         map_x,
         map_y,
         interpolation=cv.INTER_CUBIC,

@@ -114,6 +114,12 @@ baseline = 1/Q[3][2]            # baseline (unit:mm)
 principal_x = -Q[0][3]          # The pt center coor of the camera.
 principal_y = -Q[1][3]          # The pt center coor of the camera.
 
+session.cal_info.focal              = focal
+session.cal_info.baseline           = baseline
+session.cal_info.principal_x        = principal_x
+session.cal_info.principal_y        = principal_y
+
+
 print(f"C1_B_x_ini: {C1_B_x_ini}")
 print(f"C1_B_y_ini: {C1_B_y_ini}")
 print(f"C2_B_x_ini: {C2_B_x_ini}")
@@ -154,15 +160,11 @@ for ROW in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1): # -2 ~ +2
         session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = C2_B_y
         session.dic_buf.C2B_points[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = C2_B_x
         ## initial 3d coordinate
-        disparity_1B2B = (C1_B_x - C2_B_x) # get disparity: xl-xr (unit:pixel)
-        disparity_1B2B_reci = np.divide(1, disparity_1B2B)
-        # 3D coordinate of Reference point (initial)
-        X_origin = (C1_B_x - principal_x) * baseline * disparity_1B2B_reci
-        Y_origin = (C1_B_y - principal_y) * baseline * disparity_1B2B_reci
-        Z_origin = focal * baseline * disparity_1B2B_reci
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_origin
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_origin
-        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_origin
+        X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
+
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_ref
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_ref
+        session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_ref
         
         # pre-calculate Hessian & Jacobian for 1B1A & 2B2A
         # ===== 1B1A ===== #
@@ -179,8 +181,14 @@ for ROW in range(-pt_mat_side_len_half, pt_mat_side_len_half + 1, 1): # -2 ~ +2
         subset_side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
         C2B_subset_center_pt = np.array((C2_B_x,C2_B_y), dtype=np.float64)
         img_2B_sub = ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt)
-        img_grad_2B2A_x = extract_patch_bicubic(session.img_buf.img2_ref_sobel_x, C1_B_x, C1_B_y, CF_user.TEST_SUBSET_SIZE_2B2A)
-        img_grad_2B2A_y = extract_patch_bicubic(session.img_buf.img2_ref_sobel_y, C1_B_x, C1_B_y, CF_user.TEST_SUBSET_SIZE_2B2A)
+        
+        pad = 1  # Sobel need more 1 pixel to expand boarder
+        img_2B_sub_pad = cv.copyMakeBorder(img_2B_sub, pad, pad, pad, pad, borderType=cv.BORDER_REFLECT)
+        img_2B_sobel_y = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 0, 1)*0.125 # y方向
+        img_2B_sobel_x = cv.Sobel(img_2B_sub_pad, cv.CV_64F, 1, 0)*0.125 # x方向
+        img_grad_2B2A_y = img_2B_sobel_y[pad:-pad, pad:-pad]
+        img_grad_2B2A_x = img_2B_sobel_x[pad:-pad, pad:-pad]
+        
         H_inv_2B2A, J_2B2A = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_2B2A, img_grad_2B2A_x, img_grad_2B2A_y) 
         session.dic_buf.H2B2A_inv_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:]   = H_inv_2B2A[:][:]
         session.dic_buf.J2B2A_all[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:][:][:]    = J_2B2A[:][:][:]
@@ -269,21 +277,15 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             # print('time_2B2A:',time_2B2A)
             
             """ current world coordinate  """
-            # get disparity: xl-xr (unit:pixel)
-            disparity_1A2A = (C1_A_x - C2_A_x)
-            disparity_1A2A_reci = np.divide(1, disparity_1A2A)
-            X_after = (C1_A_x-principal_x)*baseline*disparity_1A2A_reci
-            Y_after = (C1_A_y-principal_y)*baseline*disparity_1A2A_reci
-            Z_after = focal*baseline*disparity_1A2A_reci
+            X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
             
             # Displacement between reference point and target point
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_after
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_after
-            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_after
-            session.dic_buf.disM[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] - session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:]
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0] = X_cur
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1] = Y_cur
+            session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2] = Z_cur
+            session.result_buf.disM[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:] - session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][:]
             # out:z, in1:x(right+), in2:y(down+)
             dis_out = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][2]
-            #dis_out2 = np.dot(disM[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half],nVector)
             dis_in_1 = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][0]
             dis_in_2 = session.dic_buf.WC_aft_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1]-session.dic_buf.WC_bef_zone[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half][1]
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
@@ -303,9 +305,9 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             end = time.time()
             total_time = end - start 
             
-            session.dic_buf.disM_out[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_out
-            session.dic_buf.disM_in_1[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_1
-            session.dic_buf.disM_in_2[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_2
+            session.result_buf.disM_out[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_out
+            session.result_buf.disM_in_1[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_1
+            session.result_buf.disM_in_2[ROW+pt_mat_side_len_half][COL+pt_mat_side_len_half] = dis_in_2
 
     end2 = time.time()
     total_time2 = end2 - start2

@@ -12,11 +12,19 @@ class DIC_user_config:
         self.subset_len_1B1A            = subset_side_len_1B1A
         self.subset_len_2B2A            = subset_side_len_2B2A
 
+class Stereo_DIC_result:
+    def __init__(self):
+        self.X_after            = None
+        self.Y_after            = None
+        self.Z_after            = None
+
 class Stereo_DIC_session:
     def __init__(self, cfg: DIC_user_config):
         self.cfg                = cfg
         self.img_buf            = img_buffer()
+        self.cal_info           = calibration_info()
         self.dic_buf            = DIC_buffer(cfg)
+        self.result_buf         = result_buffer(cfg)
     
     def get_img_dir(self, cam_idx):
         if (CF_user.TEST_MODE_EN == 0):
@@ -108,9 +116,18 @@ class Stereo_DIC_session:
     def get_img_sobel(self):
         self.img_buf.img1_ref_sobel_y = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
         self.img_buf.img1_ref_sobel_x = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
-        self.img_buf.img2_ref_sobel_y = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
-        self.img_buf.img2_ref_sobel_x = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
+        # self.img_buf.img2_ref_sobel_y = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
+        # self.img_buf.img2_ref_sobel_x = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
         return self
+    
+    def disparity_to_3d_pt(self, cam1_x, cam1_y, cam2_x):
+        disparity = cam1_x - cam2_x # get disparity: xl-xr (unit:pixel)
+        disparity_inv = np.divide(1, disparity)
+        X = (cam1_x - self.cal_info.principal_x) * self.cal_info.baseline * disparity_inv
+        Y = (cam1_y - self.cal_info.principal_y) * self.cal_info.baseline * disparity_inv
+        Z = self.cal_info.focal * self.cal_info.baseline * disparity_inv
+        return X, Y, Z
+
     
     def free_show_image(self):
         self.img_buf.img1_ref_rec_show        = None
@@ -153,6 +170,13 @@ class img_buffer:
         self.img2_cur_sobel_y           = None
         self.img2_cur_sobel_x           = None
 
+class calibration_info:
+    def __init__(self):
+        self.baseline                   = None
+        self.focal                      = None
+        self.principal_x                = None
+        self.principal_y                = None
+
 class DIC_buffer:
     def __init__(self, cfg: DIC_user_config):
         self.img1_ref_sobel_y           = None
@@ -167,12 +191,16 @@ class DIC_buffer:
         self.J2B2A_all                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A, 6), dtype=np.double)
         self.img_1B_sub_zone            = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A), dtype=np.double)
         self.img_2B_sub_zone            = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A), dtype=np.double)
+
+class result_buffer:
+    def __init__(self, cfg: DIC_user_config):
         self.disM                       = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
         self.disM_out                   = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
         self.disM_in_1                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
         self.disM_in_2                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
-        self.stress_in                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
-        self.stress_out                 = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
+        self.stress_in                  = None
+        self.stress_out                 = None
+
 
 class system_config:
     def __init__(self):
