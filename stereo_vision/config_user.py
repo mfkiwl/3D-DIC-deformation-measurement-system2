@@ -1,3 +1,5 @@
+
+from enum import Enum
 ## camera parameters
 # focal
 CAM1_FOCAL                      = 70
@@ -5,7 +7,7 @@ CAM2_FOCAL                      = 70
 # camera index
 CAM1_ID                         = 1
 CAM2_ID                         = 0
-CAM_BUFFERSIZE_EN               = 0
+CAM_BUFFER_SIZE_EN              = 0
 CAM_AUTO_FOCAL_EN               = 0
 CAM_AUTO_WB_EN                  = 0
 
@@ -14,7 +16,7 @@ TEST_MAX_IMG_CNT                = 11
 TEST_TARGET_IMG_CNT             = 1
 
 ## test mode (0: in-plane, 1:out-of-plane)
-TEST_MODE_EN                    = 0
+TEST_MODE                       = 0
 TEST_SHOW_DBG_EN                = 0
 TEST_ROTATE_IMG_EN              = 0
 TEST_REC_IMG_EN                 = 1
@@ -43,6 +45,11 @@ CAL_IMAGE_RES                   = (640,480)
 CAL_ITERATION_TIMES             = 100
 CAL_ACCURACY                    = 0.0001
 CAL_SQUARE_SIZE                 = 8 # unit: mm
+
+class Test_Mode(Enum):
+    in_plane            = 0
+    out_of_plane        = 1
+
 
 
 

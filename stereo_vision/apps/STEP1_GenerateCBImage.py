@@ -25,7 +25,7 @@ cap2 = cv.VideoCapture(CF_user.CAM2_ID, cv.CAP_DSHOW)
 
 ## close auto setting
 # 
-if CF_user.CAM_BUFFERSIZE_EN:
+if CF_user.CAM_BUFFER_SIZE_EN:
     cap1.set(cv.CAP_PROP_BUFFERSIZE,0)
     cap2.set(cv.CAP_PROP_BUFFERSIZE,0)
 # white balance

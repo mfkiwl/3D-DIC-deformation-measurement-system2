@@ -1,34 +1,30 @@
 import cv2 as cv
 import numpy as np
 class click_recorder:
-    def __init__(self):
-        self.x = None
-        self.y = None
+    def __init__(self, window_name):
+        self.x              = None
+        self.y              = None
+        self.window_name    = window_name
 
-    def callback_cam1(self, event, x, y, flags, img):
+    def callback(self, event, x, y, flags, img):
         if event == cv.EVENT_LBUTTONDOWN:
-            self.x = x
+            self.x = x 
             self.y = y
-            print("coordinate(x,y): ", x, y)
-            # 在影像上畫圓
+            print(f"coordinate(x,y): {x},{y}")
             cv.circle(img, (x, y), radius=5, color=(0, 0, 255), thickness=-1)
-            # 在影像上寫文字
             cv.putText(img, f'{x},{y}', (x+10, y-10), 
                        cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-            cv.imshow('img_1B_rec_temp', img)
+            cv.imshow(self.window_name, img)
 
-    def callback_cam2(self, event, x, y, flags, img):
-        if event == cv.EVENT_LBUTTONDOWN:
-            self.x = x
-            self.y = y
-            print("coordinate(x,y): ", x, y)
-            # 在影像上畫圓
-            cv.circle(img, (x, y), radius=5, color=(0, 0, 255), thickness=-1)
-            # 在影像上寫文字
-            cv.putText(img, f'{x},{y}', (x+10, y-10), 
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-            cv.imshow('img_2B_rec_temp', img)
+def get_click_point(img, window_name, text):
+    cv.putText(img, text, (20, 60),
+               cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+    cv.namedWindow(window_name, cv.WINDOW_NORMAL)
+    cv.imshow(window_name, img)
+    recorder = click_recorder(window_name)
+    print(f'Please {text} by clicking on the image.')
+    cv.setMouseCallback(window_name, recorder.callback, img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+    return recorder.x, recorder.y
 
-
-def get_click_point(img, windows_name, text):
-    tmp_show = np.copy(img)

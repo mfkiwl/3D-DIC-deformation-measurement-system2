@@ -34,7 +34,7 @@ cv_file.release()
 cap_left =  cv.VideoCapture(cam_index_left, cv.CAP_DSHOW)
 cap_right = cv.VideoCapture(cam_index_right, cv.CAP_DSHOW)                    
 
-if CF_user.CAM_BUFFERSIZE_EN:
+if CF_user.CAM_BUFFER_SIZE_EN:
     cap_left.set(cv.CAP_PROP_BUFFERSIZE,0)
     cap_right.set(cv.CAP_PROP_BUFFERSIZE,0)
 # white balance
@@ -86,7 +86,7 @@ while(cap_right.isOpened() and cap_left.isOpened()):
     
     # s: save image
     elif k == ord('s'):
-        if CF_user.TEST_MODE_EN == 0:
+        if CF_user.TEST_MODE == 0:
             save_path_1 = f"{CF.IMAGE_TARGET_IN_CAM1_DIR}/{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image" + str(img_cnt) + '.jpg'
             save_path_2 = f"{CF.IMAGE_TARGET_IN_CAM2_DIR}/{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image" + str(img_cnt) + '.jpg'
             cv.imwrite(save_path_1, frame_left_ori)
@@ -94,7 +94,7 @@ while(cap_right.isOpened() and cap_left.isOpened()):
             print(f'save: {save_path_1}')
             print(f'save: {save_path_2}\n')
             img_cnt += 1
-        elif CF_user.TEST_MODE_EN == 1:
+        elif CF_user.TEST_MODE == 1:
             save_path_1 = f"{CF.IMAGE_TARGET_OUT_CAM1_DIR}/{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image" + str(img_cnt) + '.jpg'
             save_path_2 = f"{CF.IMAGE_TARGET_OUT_CAM2_DIR}/{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image" + str(img_cnt) + '.jpg'
             cv.imwrite(save_path_1, frame_left_ori)
@@ -103,7 +103,7 @@ while(cap_right.isOpened() and cap_left.isOpened()):
             print(f'save: {save_path_2}\n')
             img_cnt += 1
         else:
-            print(f"[ERROR] TEST_MODE_EN={CF_user.TEST_MODE_EN} (invalid value)")
+            print(f"[ERROR] TEST_MODE={CF_user.TEST_MODE} (invalid value)")
         
 
 cap_right.release()

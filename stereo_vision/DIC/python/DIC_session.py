@@ -27,12 +27,12 @@ class Stereo_DIC_session:
         self.result_buf         = result_buffer(cfg)
     
     def get_img_dir(self, cam_idx):
-        if (CF_user.TEST_MODE_EN == 0):
+        if (CF_user.TEST_MODE == 0):
             if cam_idx == 1:
                 return CF.IMAGE_TARGET_IN_CAM1_DIR
             else:
                 return CF.IMAGE_TARGET_IN_CAM2_DIR
-        elif (CF_user.TEST_MODE_EN == 1):
+        elif (CF_user.TEST_MODE == 1):
             if cam_idx == 1:
                 return CF.IMAGE_TARGET_OUT_CAM1_DIR
             else:
@@ -56,14 +56,14 @@ class Stereo_DIC_session:
         self.check_img_path(self.img_buf.img2_cur_path, "img2_cur_path")
     
     def read_img_ref(self):
-        self.img_buf.img1_ref             = cv.imread(str(self.img_buf.img1_ref_path))
-        self.img_buf.img2_ref             = cv.imread(str(self.img_buf.img2_ref_path))
+        self.img_buf.img1_ref               = cv.imread(str(self.img_buf.img1_ref_path))
+        self.img_buf.img2_ref               = cv.imread(str(self.img_buf.img2_ref_path))
         if self.img_buf.img1_ref_path is None: print(f"[ERROR] fail to read img1_ref_path: {self.img_buf.img1_ref_path}")
         if self.img_buf.img2_ref_path is None: print(f"[ERROR] fail to read img2_ref_path: {self.img_buf.img2_ref_path}")
     
     def read_img_cur(self):
-        self.img_buf.img1_cur             = cv.imread(str(self.img_buf.img1_cur_path))
-        self.img_buf.img2_cur             = cv.imread(str(self.img_buf.img2_cur_path))
+        self.img_buf.img1_cur               = cv.imread(str(self.img_buf.img1_cur_path))
+        self.img_buf.img2_cur               = cv.imread(str(self.img_buf.img2_cur_path))
         if self.img_buf.img1_cur_path is None: print(f"[ERROR] fail to read img1_cur_path: {self.img_buf.img1_cur_path}")
         if self.img_buf.img2_cur_path is None: print(f"[ERROR] fail to read img2_cur_path: {self.img_buf.img2_cur_path}")
 
@@ -73,7 +73,6 @@ class Stereo_DIC_session:
         return self
     
     def load_stereo_images_cur(self, file_name):
-        print("debug")
         self.get_cur_file_path(file_name)
         self.read_img_cur()
         return self
@@ -100,26 +99,36 @@ class Stereo_DIC_session:
 
         self.img_buf.img1_cur_rec, self.img_buf.img2_cur_rec = img_cal.undistortRectify(self.img_buf.img1_cur, self.img_buf.img2_cur)
         
-        self.img_buf.img1_cur_rec_show = np.copy(self.img_buf.img1_cur_rec)
-        self.img_buf.img2_cur_rec_show = np.copy(self.img_buf.img2_cur_rec)
-        self.img_buf.img1_cur_rec = run_Gaussian_blur(self.img_buf.img1_cur_rec, is_enable=CF_user.TEST_GAUSSIANBLUR_EN)
-        self.img_buf.img2_cur_rec = run_Gaussian_blur(self.img_buf.img2_cur_rec, is_enable=CF_user.TEST_GAUSSIANBLUR_EN)
-        self.img_buf.img1_cur_rec_gray = cv.cvtColor(self.img_buf.img1_cur_rec, cv.COLOR_BGR2GRAY)
-        self.img_buf.img2_cur_rec_gray = cv.cvtColor(self.img_buf.img2_cur_rec, cv.COLOR_BGR2GRAY)
-        self.img_buf.img1_cur_rec_gray = self.img_buf.img1_cur_rec_gray.astype(np.double)
-        self.img_buf.img2_cur_rec_gray = self.img_buf.img2_cur_rec_gray.astype(np.double)
+        self.img_buf.img1_cur_rec_show      = np.copy(self.img_buf.img1_cur_rec)
+        self.img_buf.img2_cur_rec_show      = np.copy(self.img_buf.img2_cur_rec)
+        self.img_buf.img1_cur_rec           = run_Gaussian_blur(self.img_buf.img1_cur_rec, is_enable=CF_user.TEST_GAUSSIANBLUR_EN)
+        self.img_buf.img2_cur_rec           = run_Gaussian_blur(self.img_buf.img2_cur_rec, is_enable=CF_user.TEST_GAUSSIANBLUR_EN)
+        self.img_buf.img1_cur_rec_gray      = cv.cvtColor(self.img_buf.img1_cur_rec, cv.COLOR_BGR2GRAY)
+        self.img_buf.img2_cur_rec_gray      = cv.cvtColor(self.img_buf.img2_cur_rec, cv.COLOR_BGR2GRAY)
+        self.img_buf.img1_cur_rec_gray      = self.img_buf.img1_cur_rec_gray.astype(np.double)
+        self.img_buf.img2_cur_rec_gray      = self.img_buf.img2_cur_rec_gray.astype(np.double)
         return self
     
     def prepare_display_windows(self, message='set a reference point on img_1B'):
         return self
 
     def get_img_sobel(self):
-        self.img_buf.img1_ref_sobel_y = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
-        self.img_buf.img1_ref_sobel_x = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
-        # self.img_buf.img2_ref_sobel_y = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
-        # self.img_buf.img2_ref_sobel_x = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
+        self.img_buf.img1_ref_sobel_y       = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
+        self.img_buf.img1_ref_sobel_x       = cv.Sobel(self.img_buf.img1_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
+        # self.img_buf.img2_ref_sobel_y     = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 0, 1)*0.125
+        # self.img_buf.img2_ref_sobel_x     = cv.Sobel(self.img_buf.img2_ref_rec_gray, cv.CV_64F, 1, 0)*0.125
         return self
     
+    def get_reprojection_info(self):
+        cv_file = cv.FileStorage()
+        cv_file.open(CF.STEREO_MAP_PATH, cv.FileStorage_READ)
+        Q = cv_file.getNode('Q').mat()
+        cv_file.release()
+        self.cal_info.focal                 = Q[2][3]       # focal (unit:pixel)
+        self.cal_info.baseline              = 1/Q[3][2]     # baseline (unit:mm)
+        self.cal_info.principal_x           = -Q[0][3]      # The pt center coor of the camera
+        self.cal_info.principal_y           = -Q[1][3]      # The pt center coor of the camera
+
     def disparity_to_3d_pt(self, cam1_x, cam1_y, cam2_x):
         disparity = cam1_x - cam2_x # get disparity: xl-xr (unit:pixel)
         disparity_inv = np.divide(1, disparity)
@@ -130,11 +139,14 @@ class Stereo_DIC_session:
 
     
     def free_show_image(self):
-        self.img_buf.img1_ref_rec_show        = None
-        self.img_buf.img2_ref_rec_show        = None
+        self.img_buf.img1_ref_rec_show      = None
+        self.img_buf.img2_ref_rec_show      = None
         return
     
     def select_target_pt():
+        return
+    
+    def check_ini_pt():
         return
     
 def create_session(cfg: DIC_user_config):
@@ -142,66 +154,66 @@ def create_session(cfg: DIC_user_config):
 
 class img_buffer:
     def __init__(self):
-        self.force_direct               = None
-        self.img1_ref_path              = None
-        self.img2_ref_path              = None
-        self.img1_ref                   = None
-        self.img2_ref                   = None
-        self.img1_ref_rec               = None
-        self.img2_ref_rec               = None
-        self.img1_ref_rec_show          = None
-        self.img2_ref_rec_show          = None
-        self.img1_ref_rec_gray          = None
-        self.img2_ref_rec_gray          = None
+        self.force_direct                   = None
+        self.img1_ref_path                  = None
+        self.img2_ref_path                  = None
+        self.img1_ref                       = None
+        self.img2_ref                       = None
+        self.img1_ref_rec                   = None
+        self.img2_ref_rec                   = None
+        self.img1_ref_rec_show              = None
+        self.img2_ref_rec_show              = None
+        self.img1_ref_rec_gray              = None
+        self.img2_ref_rec_gray              = None
 
-        self.img1_cur_path              = None
-        self.img2_cur_path              = None
-        self.img1_cur                   = None
-        self.img2_cur                   = None
-        self.img1_cur_rec               = None
-        self.img2_cur_rec               = None
-        self.img1_cur_rec_show          = None
-        self.img2_cur_rec_show          = None
-        self.img1_cur_rec_gray          = None
-        self.img2_cur_rec_gray          = None
+        self.img1_cur_path                  = None
+        self.img2_cur_path                  = None
+        self.img1_cur                       = None
+        self.img2_cur                       = None
+        self.img1_cur_rec                   = None
+        self.img2_cur_rec                   = None
+        self.img1_cur_rec_show              = None
+        self.img2_cur_rec_show              = None
+        self.img1_cur_rec_gray              = None
+        self.img2_cur_rec_gray              = None
 
-        self.img1_ref_sobel_y           = None
-        self.img1_ref_sobel_x           = None
-        self.img2_cur_sobel_y           = None
-        self.img2_cur_sobel_x           = None
+        self.img1_ref_sobel_y               = None
+        self.img1_ref_sobel_x               = None
+        self.img2_cur_sobel_y               = None
+        self.img2_cur_sobel_x               = None
 
 class calibration_info:
     def __init__(self):
-        self.baseline                   = None
-        self.focal                      = None
-        self.principal_x                = None
-        self.principal_y                = None
+        self.baseline                       = None
+        self.focal                          = None
+        self.principal_x                    = None
+        self.principal_y                    = None
 
 class DIC_buffer:
     def __init__(self, cfg: DIC_user_config):
-        self.img1_ref_sobel_y           = None
-        self.img1_ref_sobel_x           = None
-        self.C1B_points                 = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 2), dtype=int)
-        self.C2B_points                 = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 2), dtype=np.double)
-        self.WC_bef_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
-        self.WC_aft_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
-        self.H1B1A_inv_all              = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 6, 6), dtype=np.double)
-        self.H2B2A_inv_all              = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 6, 6), dtype=np.double)
-        self.J1B1A_all                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A, 6), dtype=np.double)
-        self.J2B2A_all                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A, 6), dtype=np.double)
-        self.img_1B_sub_zone            = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A), dtype=np.double)
-        self.img_2B_sub_zone            = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A), dtype=np.double)
+        self.img1_ref_sobel_y               = None
+        self.img1_ref_sobel_x               = None
+        self.C1B_points                     = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 2), dtype=int)
+        self.C2B_points                     = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 2), dtype=np.double)
+        self.WC_bef_zone                    = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
+        self.WC_aft_zone                    = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
+        self.H1B1A_inv_all                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 6, 6), dtype=np.double)
+        self.H2B2A_inv_all                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 6, 6), dtype=np.double)
+        self.J1B1A_all                      = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A, 6), dtype=np.double)
+        self.J2B2A_all                      = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A, 6), dtype=np.double)
+        self.img_1B_sub_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A), dtype=np.double)
+        self.img_2B_sub_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A), dtype=np.double)
 
 class result_buffer:
     def __init__(self, cfg: DIC_user_config):
-        self.disM                       = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
-        self.disM_out                   = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
-        self.disM_in_1                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
-        self.disM_in_2                  = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
-        self.stress_in                  = None
-        self.stress_out                 = None
+        self.disM                           = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
+        self.disM_out                       = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
+        self.disM_in_1                      = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
+        self.disM_in_2                      = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len), dtype=np.double)
+        self.stress_in                      = None
+        self.stress_out                     = None
 
 
 class system_config:
     def __init__(self):
-        self.force_direct               = None
+        self.force_direct                   = None
