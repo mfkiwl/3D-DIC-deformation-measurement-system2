@@ -13,7 +13,7 @@ CAM_AUTO_WB_EN                  = 0
 
 # image
 TEST_MAX_IMG_CNT                = 11
-TEST_TARGET_IMG_CNT             = 1
+TEST_TARGET_IMG_PAIR_NUM             = 1
 
 ## test mode (0: in-plane, 1:out-of-plane)
 TEST_MODE                       = 0

@@ -123,7 +123,8 @@ cv.waitKey(0)
 cv.destroyAllWindows()
 
 dis_sum = 0
-for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
+total_time = 0
+for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
     loaded_file_name = f"{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image{img_idx}.jpg"
     print(f"loaded_file_name: {loaded_file_name}")
     (
@@ -131,7 +132,6 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
                 .pre_process_cur()
     )
 
-    start2 = time.time()
     for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             row = ROW + pt_mat_len_half
@@ -141,8 +141,6 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
 
             # ===== 1B1A ===== #
             start = time.time()
-            start_1B1A = time.time()
-
             H_inv_1B1A[:][:]        = session.dic_buf.H1B1A_inv_all[row][col][:][:]
             J_1B1A[:][:][:]         = session.dic_buf.J1B1A_all[row][col][:][:][:]
             img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
@@ -159,14 +157,8 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
                 search_type         = DIC_search_pt_type.normal
             )
             C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config)
-
-            end_1B1A = time.time()
-            time_1B1A = end_1B1A - start_1B1A
-            # print('time_1B1A:',time_1B1A)
             
             # ===== 2B2A ===== #
-            start_2B2A = time.time()
-        
             H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
             J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[row][col][:][:][:]
             img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
@@ -183,10 +175,6 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
                 search_type         = DIC_search_pt_type.normal
             )
             C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config)
-
-            end_2B2A = time.time()
-            time_2B2A = end_2B2A - start_2B2A
-            # print('time_2B2A:',time_2B2A)
             
             """ current world coordinate  """
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
@@ -201,10 +189,10 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
             
             if CF_user.TEST_MODE == Test_Mode.in_plane.value: # in plane
-                print(np.round(dis_in_sum, 6))
+                # print(np.round(dis_in_sum, 6))
                 dis_sum += dis_in_sum
             else: # out of plane
-                print(np.round(dis_out, 6))
+                # print(np.round(dis_out, 6))
                 dis_sum += dis_out
             
             session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5,\
@@ -213,21 +201,18 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_CNT + 1,1):
                                                     (0, 255, 255), 1)  
             
             end = time.time()
-            total_time = end - start 
+            total_time += end - start 
             
             session.result_buf.disM_out[row][col] = dis_out
             session.result_buf.disM_in_1[row][col] = dis_in_1
             session.result_buf.disM_in_2[row][col] = dis_in_2
-
-    end2 = time.time()
-    total_time2 = end2 - start2
     
 cv.imshow('img_1A_rec', session.img_buf.img1_cur_rec)
 cv.imshow('img_2A_rec', session.img_buf.img2_cur_rec)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
-print('Average time per point: ', total_time / (CF_user.TEST_POINT_ARRAY * 10))
-print('Average dis:', dis_sum / (CF_user.TEST_TARGET_IMG_CNT * CF_user.TEST_POINT_ARRAY))
+print('Average time per point: ', total_time / (CF_user.TEST_POINT_ARRAY * CF_user.TEST_TARGET_IMG_PAIR_NUM))
+print('Average dis:', dis_sum / (CF_user.TEST_TARGET_IMG_PAIR_NUM * CF_user.TEST_POINT_ARRAY))
 print("End")
 

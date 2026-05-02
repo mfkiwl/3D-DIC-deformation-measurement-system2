@@ -2,7 +2,7 @@ CC = gcc
 
 # define params (-Wall: show warnings, -g: add debug info, -I : srearch from root)                       
 # compile params
-CFLAGS = -Wall -g -fPIC \
+CFLAGS = -Wall -O2 -fPIC \
 	-I. \
 	-IPSO/include \
 	-IDIC/include \
@@ -39,15 +39,13 @@ HEADERS_INTERP       =      $(wildcard tools/interpolation/include/*.h)
 SRCS_ICGN            =      $(wildcard DIC/src/ICGN.c)
 HEADERS_ICGN         =      $(wildcard DIC/include/*.h)
 
-check_files:
-	@echo "--- PSO Source Files ---"
-	@for %%f in ($(SRCS_PSO)) do @echo %%f
-	@echo "------------------------"
+check:
+	@echo $(SRCS_PSO)
 
 prepare:
 	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 
-all: prepare check_files $(TARGET_PSO) $(TARGET_INTERP) $(TARGET_ICGN)
+all: prepare $(TARGET_PSO) $(TARGET_INTERP) $(TARGET_ICGN)
 
 $(TARGET_PSO): $(SRCS_PSO)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
