@@ -49,7 +49,7 @@ session.get_reprojection_info()
 
 lib_ICGN        = session.lib.ICGN
 lib_PSO         = session.lib.PSO
-lib_interp      = session.lib.interp
+# lib_interp      = session.lib.interp
 
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
@@ -68,7 +68,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
                                                            C1_B_x - subset_len_1B2B_half:C1_B_x + subset_len_1B2B_half + 1]
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_grad_1B2B_x, img_grad_1B2B_y)
         C1B_subset_center_pt = np.array((C1_B_x,C1_B_y), dtype=np.float64)
-        img_1B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt)
+        img_1B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt, lib_ICGN)
         session.dic_buf.img_1B_sub_zone[row][col][:][:] = img_1B_sub
         
         dic_config = DIC_config (
@@ -82,7 +82,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
             search_type         = DIC_search_pt_type.initial
         )
-        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
+        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
         session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
         session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
@@ -100,7 +100,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         # ===== 2B2A ===== #
         subset_side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
         C2B_subset_center_pt = np.array((C2_B_x,C2_B_y), dtype=np.float64)
-        img_2B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt)
+        img_2B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt, lib_ICGN)
         
         pad = 1  # Sobel need more 1 pixel to expand boarder
         img_2B_sub_pad = cv.copyMakeBorder(img_2B_sub, pad, pad, pad, pad, borderType=cv.BORDER_REFLECT)
@@ -172,13 +172,14 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
+            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
             
             # ===== 2B2A ===== #
             H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
             J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[row][col][:][:][:]
             img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
 
+            
             dic_config = DIC_config (
                 coarse_method       = Coarse_Search_Method.PSO,
                 coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
@@ -190,8 +191,12 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_2B2A, J_mat=J_2B2A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
-            
+            start_DIC = time.time()
+            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
+            end_DIC = time.time()
+            time_dic = end_DIC - start_DIC
+            # print(f"time_dic: {time_dic:.4f}")
+
             """ current world coordinate  """
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
             
@@ -212,7 +217,9 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 dis_sum += dis_out
             
             end = time.time()
-            total_time += end - start 
+            increase_time = end - start
+            # print(f"increase_time: {increase_time:.4f}")
+            total_time += increase_time
 
             session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5,\
                                                     (0, 255, 255), 1)  

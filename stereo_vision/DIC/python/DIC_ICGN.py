@@ -1,5 +1,6 @@
 ## ===== DIC (digital image correlation) ===== ##
 import numpy as np
+import time
 import ctypes
 import stereo_vision.config as CF
 from stereo_vision import config_user as CF_user
@@ -8,39 +9,47 @@ from stereo_vision.DIC.python.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
 # update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
-def update_target_img_subset(subset_size_len, img, point_ini, warp_coef=None):
+def update_target_img_subset(subset_size_len, img, point_ini, lib_ICGN, warp_coef=None):
     img = np.asarray(img, dtype=np.float64)
     img_flat = img.flatten(order='C') # C:n row major
     height, width = img.shape
     if warp_coef is None:
         warp_coef = np.eye(3, dtype=np.float64)
     target_matrix_g_flat = np.zeros(subset_size_len*subset_size_len, dtype=np.float64) # create new 1d array
-    m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
+#     m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
     
-    m.update_target_img_subset.argtypes = [
-    POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double),
-    c_int, c_int, c_int
-    ]
-    m.update_target_img_subset.restype = None
+#     m.update_target_img_subset.argtypes = [
+#     POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double),
+#     c_int, c_int, c_int
+#     ]
+#     m.update_target_img_subset.restype = None
 
     img_flat_ptr                    = img_flat.ctypes.data_as(POINTER(c_double))
     target_matrix_g_flat_ptr        = target_matrix_g_flat.ctypes.data_as(POINTER(c_double))
     point_ini_ptr                   = point_ini.ctypes.data_as(POINTER(c_double))
     warp_coef_ptr                   = warp_coef.ctypes.data_as(POINTER(c_double))
-
-    m.update_target_img_subset(img_flat_ptr,
-                                target_matrix_g_flat_ptr,
-                                point_ini_ptr,
-                                warp_coef_ptr,
-                                width,
-                                height,
-                                subset_size_len)
-
+    start_update = time.time()
+    
+    lib_ICGN.update_target_img_subset(
+          img_flat_ptr,
+          target_matrix_g_flat_ptr,
+          point_ini_ptr,
+          warp_coef_ptr,
+          width,
+          height,
+          subset_size_len
+          )
+    
+    end_update = time.time()
+    time_update = end_update - start_update
+    # print(f"time_update: {time_update:.6f}")
+    
     target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
     return target_matrix_g
 
 
-def run_DIC(dic_config: DIC_config, lib_PSO):
+def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
+       
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
        img_ref_x                                 = dic_config.img_ref_pt.pt_x
@@ -128,8 +137,9 @@ def run_DIC(dic_config: DIC_config, lib_PSO):
        eps = 1e-12
        # [NOTICE] FROM NOW ON IS (X,Y), NOT (Y,X) anymore!!
        point_ini = np.array((img_ref_pt_x_guess, img_ref_pt_y_guess), dtype=np.float64)
+       start_ICGN = time.time()
        while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_CNT:
-              target_mat_g = update_target_img_subset(subset_size_len, img_cur, point_ini, warp_function)
+              target_mat_g = update_target_img_subset(subset_size_len, img_cur, point_ini, lib_ICGN, warp_function)
               target_mat_g_mean = np.mean(target_mat_g)
               delta_g = np.std(target_mat_g, ddof=0)
 
@@ -152,7 +162,10 @@ def run_DIC(dic_config: DIC_config, lib_PSO):
               # update warp function
               warp_function = warp_function @ warp_inc_function_inv
               cnt += 1
-              
+       end_ICGN = time.time()
+       time_ICGN = end_ICGN - start_ICGN
+       print(f"time_ICGN: {time_ICGN:.6f}")
+       
        X = warp_function[0][2]
        Y = warp_function[1][2]
        # print(f"(X,Y)=({X:.3f},{Y:.3f})")

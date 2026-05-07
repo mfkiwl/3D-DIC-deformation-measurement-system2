@@ -4,13 +4,14 @@
 #include<math.h>
 
 // Keys cubic kernel (a = -0.5, Catmull-Rom)
-double cubic_weight(double x, double a) {
-    x = fabs(x);
-    if (x < 1.0) {
-        return (a + 2) * pow(x, 3) - (a + 3) * pow(x, 2) + 1;
-    } else if (x < 2.0) {
-        return a * pow(x, 3) - 5 * a * pow(x, 2) + 8 * a * x - 4 * a;
-    }
+static inline double cubic_weight(double t, double a) {
+    double x = t < 0 ? -t : t;   // fabs，inline
+    double x2 = x * x;
+    double x3 = x2 * x;
+    if (x < 1.0)
+        return (a + 2)*x3 - (a + 3)*x2 + 1;
+    else if (x < 2.0)
+        return a*x3 - 5*a*x2 + 8*a*x - 4*a;
     return 0.0;
 }
 

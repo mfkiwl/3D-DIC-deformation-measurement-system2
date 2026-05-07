@@ -13,7 +13,7 @@ CAM_AUTO_WB_EN                  = 0
 
 # image
 TEST_MAX_IMG_CNT                = 11
-TEST_TARGET_IMG_PAIR_NUM             = 1
+TEST_TARGET_IMG_PAIR_NUM        = 1
 
 ## test mode (0: in-plane, 1:out-of-plane)
 TEST_MODE                       = 0
@@ -43,13 +43,13 @@ LOAD_MAX                        = 5
 CAL_CHESSBOARD_SIZE             = (9,6)
 CAL_IMAGE_RES                   = (640,480)
 CAL_ITERATION_TIMES             = 100
-CAL_ACCURACY                    = 0.0001
+CAL_ACCURACY                    = 0.001
 CAL_SQUARE_SIZE                 = 8 # unit: mm
 
 # DIC
 DIC_ICGN_ACCURACY_INIT          = 0.1
 DIC_ICGN_ACCURACY               = 0.0001
-DIC_ICGN_CNT                    = 20
+DIC_ICGN_CNT                    = 10
 
 
 class Test_Mode(Enum):
