@@ -3,6 +3,8 @@ import os
 import cv2 as cv
 from stereo_vision import config as CF
 from stereo_vision import config_user as CF_user
+import ctypes
+from ctypes import cdll
 import stereo_vision.camera_calibration.python.image_calibration as img_cal
 from stereo_vision.tools.vision.src.processor import rotate_image, check_file_path, run_Gaussian_blur
 
@@ -24,6 +26,7 @@ class Stereo_DIC_session:
         self.img_buf            = img_buffer()
         self.cal_info           = calibration_info()
         self.dic_buf            = DIC_buffer(cfg)
+        self.lib                = Library()
         self.result_buf         = result_buffer(cfg)
     
     def get_img_dir(self, cam_idx):
@@ -209,6 +212,56 @@ class DIC_buffer:
         self.J2B2A_all                      = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A, 6), dtype=np.double)
         self.img_1B_sub_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_1B1A, cfg.subset_len_1B1A), dtype=np.double)
         self.img_2B_sub_zone                = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, cfg.subset_len_2B2A, cfg.subset_len_2B2A), dtype=np.double)
+
+class Library:
+    def __init__(self):
+        self.ICGN                       = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
+        self.PSO                        = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO.dll')
+        self.interp                     = cdll.LoadLibrary(f'{CF.BUILD_DIR}/cubic_interp.dll')
+
+        self._set_type_ICGN()
+        self._set_type_PSO()
+        self._set_type_interp()
+
+    def _set_type_ICGN(self):
+        self.ICGN.update_target_img_subset.argtypes = [
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int
+        ]
+        self.ICGN.update_target_img_subset.restype = None
+        return
+    
+    def _set_type_PSO(self):
+        self.PSO.process_image.argtypes = [
+            ctypes.POINTER(ctypes.c_double),    # ref_img
+            ctypes.POINTER(ctypes.c_double),    # cur_img
+            ctypes.c_int,                       # width
+            ctypes.c_int,                       # height
+            ctypes.c_int,                       # population
+            ctypes.c_int,                       # subset_side_len
+            ctypes.POINTER(ctypes.c_double),    # img_ref_pt
+            ctypes.POINTER(ctypes.c_double),    # img_cur_pt
+            ctypes.POINTER(ctypes.c_double)     # result_buffer
+        ]
+        self.PSO.process_image.restype = None
+        return
+    
+    def _set_type_interp(self):
+        self.interp.get_bicubic_interp_value.argtypes = [
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_double,
+            ctypes.c_double
+        ]
+        self.interp.get_bicubic_interp_value.restype = ctypes.c_double
+        return
+
 
 class result_buffer:
     def __init__(self, cfg: DIC_user_config):

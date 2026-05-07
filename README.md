@@ -64,9 +64,13 @@ python -m stereo_vision.apps.STEP2_StereoCalibration
 ```
 
 ### STEP4: measure the displacement of the surface on rubber
-
-Run the following command from the project root directory (3D-DIC_measurement_system/):
+Run the following command from the project root directory (3D-DIC_measurement_system/):  
+* Build:
+```shell
+mingw32-make
 ```
+* Run 3D measurement
+```shell
 python -m stereo_vision.apps.STEP4_DisplacementField
 ```
 And you can obtain the average displacemnt of rubber in surface

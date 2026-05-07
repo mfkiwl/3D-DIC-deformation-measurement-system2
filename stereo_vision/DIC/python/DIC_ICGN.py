@@ -40,7 +40,7 @@ def update_target_img_subset(subset_size_len, img, point_ini, warp_coef=None):
     return target_matrix_g
 
 
-def run_DIC(dic_config: DIC_config):
+def run_DIC(dic_config: DIC_config, lib_PSO):
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
        img_ref_x                                 = dic_config.img_ref_pt.pt_x
@@ -68,20 +68,20 @@ def run_DIC(dic_config: DIC_config):
        img_cur_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.double)
 
        # ===== measure interger displacment ===== 
-       lib = ctypes.CDLL(f"{CF.BUILD_DIR}/PSO.dll")
+       # lib = ctypes.CDLL(f"{CF.BUILD_DIR}/PSO.dll")
        # parm type
-       lib.process_image.argtypes = [
-              ctypes.POINTER(ctypes.c_double),    # ref_img
-              ctypes.POINTER(ctypes.c_double),    # cur_img
-              ctypes.c_int,                       # width
-              ctypes.c_int,                       # height
-              ctypes.c_int,                       # population
-              ctypes.c_int,                       # subset_side_len
-              ctypes.POINTER(ctypes.c_double),    # img_ref_pt
-              ctypes.POINTER(ctypes.c_double),    # img_cur_pt
-              ctypes.POINTER(ctypes.c_double)     # result_buffer
-       ]
-       lib.process_image.restype = None
+       # lib.process_image.argtypes = [
+       #        ctypes.POINTER(ctypes.c_double),    # ref_img
+       #        ctypes.POINTER(ctypes.c_double),    # cur_img
+       #        ctypes.c_int,                       # width
+       #        ctypes.c_int,                       # height
+       #        ctypes.c_int,                       # population
+       #        ctypes.c_int,                       # subset_side_len
+       #        ctypes.POINTER(ctypes.c_double),    # img_ref_pt
+       #        ctypes.POINTER(ctypes.c_double),    # img_cur_pt
+       #        ctypes.POINTER(ctypes.c_double)     # result_buffer
+       # ]
+       # lib.process_image.restype = None
 
        img_ref_ptr                               = img_ref.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
        img_cur_ptr                               = img_cur.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
@@ -90,7 +90,7 @@ def run_DIC(dic_config: DIC_config):
        result_buffer_ptr                         = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) 
              
        # run_PSO
-       lib.process_image(
+       lib_PSO.process_image(
               img_ref_ptr, 
               img_cur_ptr, 
               w, 

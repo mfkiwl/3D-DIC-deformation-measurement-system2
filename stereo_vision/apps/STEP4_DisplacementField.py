@@ -21,8 +21,7 @@ from stereo_vision.config_DIC import (
 )
 
 from stereo_vision.DIC.python.DIC_session import (
-    DIC_user_config, Stereo_DIC_session,
-    create_session, img_buffer, DIC_buffer, system_config,
+    DIC_user_config, create_session,
 )
 
 from stereo_vision.config_user import (
@@ -47,6 +46,10 @@ C1_B_x_ini, C1_B_y_ini = get_click_point(session.img_buf.img1_ref_rec_show, 'img
 C2_B_x_ini, C2_B_y_ini = get_click_point(session.img_buf.img2_ref_rec_show, 'img2_ref_rec_show', 'set a reference point on img_2B')
 session.free_show_image()
 session.get_reprojection_info()
+
+lib_ICGN        = session.lib.ICGN
+lib_PSO         = session.lib.PSO
+lib_interp      = session.lib.interp
 
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
@@ -79,7 +82,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
             search_type         = DIC_search_pt_type.initial
         )
-        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config)
+        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
         session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
         session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
@@ -124,6 +127,19 @@ cv.destroyAllWindows()
 
 dis_sum = 0
 total_time = 0
+
+base_cfg = DIC_config (
+    coarse_method       = Coarse_Search_Method.PSO,
+    coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
+    dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img1_cur_rec_gray),
+    img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
+    init_param          = Stereo_DIC_Init_Param(translate = None),
+    subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
+    subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
+    img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
+    search_type         = DIC_search_pt_type.normal
+)
+
 for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
     loaded_file_name = f"{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image{img_idx}.jpg"
     print(f"loaded_file_name: {loaded_file_name}")
@@ -156,7 +172,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config)
+            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
             
             # ===== 2B2A ===== #
             H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
@@ -174,7 +190,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_2B2A, J_mat=J_2B2A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config)
+            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO)
             
             """ current world coordinate  """
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
@@ -195,13 +211,13 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 # print(np.round(dis_out, 6))
                 dis_sum += dis_out
             
+            end = time.time()
+            total_time += end - start 
+
             session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5,\
                                                     (0, 255, 255), 1)  
             session.img_buf.img2_cur_rec = cv.circle(session.img_buf.img2_cur_rec, (int(C2_A_x), int(C2_A_y)), 5,\
                                                     (0, 255, 255), 1)  
-            
-            end = time.time()
-            total_time += end - start 
             
             session.result_buf.disM_out[row][col] = dis_out
             session.result_buf.disM_in_1[row][col] = dis_in_1
