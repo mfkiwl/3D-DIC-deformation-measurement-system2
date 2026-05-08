@@ -4,15 +4,16 @@ import cv2 as cv
 from stereo_vision import config as CF
 from stereo_vision import config_user as CF_user
 import ctypes
-from ctypes import cdll
+from ctypes import cdll, c_int, c_double, POINTER
 import stereo_vision.camera_calibration.python.image_calibration as img_cal
 from stereo_vision.tools.vision.src.processor import rotate_image, check_file_path, run_Gaussian_blur
 
 class DIC_user_config:
-    def __init__(self, pt_mat_side_len, subset_side_len_1B1A, subset_side_len_2B2A):
-        self.pt_mat_side_len            = pt_mat_side_len
-        self.subset_len_1B1A            = subset_side_len_1B1A
-        self.subset_len_2B2A            = subset_side_len_2B2A
+    def __init__(self):
+        self.pt_mat_side_len            = CF_user.TEST_POINT_ARRAY
+        self.subset_len_1B2B            = CF_user.TEST_SUBSET_SIZE_1B2B
+        self.subset_len_1B1A            = CF_user.TEST_SUBSET_SIZE_1B1A
+        self.subset_len_2B2A            = CF_user.TEST_SUBSET_SIZE_2B2A
 
 class Stereo_DIC_result:
     def __init__(self):
@@ -28,7 +29,10 @@ class Stereo_DIC_session:
         self.dic_buf            = DIC_buffer(cfg)
         self.lib                = Library()
         self.result_buf         = result_buffer(cfg)
-    
+        self.icgn_proc_1B2B     = ICGN_processor(cfg.subset_len_1B2B)
+        self.icgn_proc_1B1A     = ICGN_processor(cfg.subset_len_1B1A)
+        self.icgn_proc_2B2A     = ICGN_processor(cfg.subset_len_2B2A)
+        
     def get_img_dir(self, cam_idx):
         if (CF_user.TEST_MODE == 0):
             if cam_idx == 1:
@@ -262,7 +266,6 @@ class Library:
         self.interp.get_bicubic_interp_value.restype = ctypes.c_double
         return
 
-
 class result_buffer:
     def __init__(self, cfg: DIC_user_config):
         self.disM                           = np.zeros((cfg.pt_mat_side_len, cfg.pt_mat_side_len, 3), dtype=np.double)
@@ -272,7 +275,34 @@ class result_buffer:
         self.stress_in                      = None
         self.stress_out                     = None
 
+class ICGN_processor:
+    def __init__(self, subset_size_len):
+        self.subset_size_len = subset_size_len
+        n = subset_size_len
+        self._target_subset_flat    = np.zeros(n * n, dtype=np.float64)
+        self._target_subset_2d      = self._target_subset_flat.reshape((n, n))   # view: zero copy
+        self._warp_eye              = np.eye(3, dtype=np.float64)
 
+    def update_target_img_subset(self, img, point_ini, lib_ICGN, warp_coef=None):
+        img = np.asarray(img, dtype=np.float64)
+        if not img.flags['C_CONTIGUOUS']:
+            img = np.ascontiguousarray(img)
+        img_flat = img.ravel()   # ravel (no copy）vs. flatten（copy）
+
+        wc = self._warp_eye if warp_coef is None else warp_coef
+        height, width = img.shape
+
+        lib_ICGN.update_target_img_subset(
+            img_flat.ctypes.data_as(POINTER(c_double)),
+            self._target_subset_flat.ctypes.data_as(POINTER(c_double)),
+            point_ini.ctypes.data_as(POINTER(c_double)),
+            wc.ctypes.data_as(POINTER(c_double)),
+            width,
+            height,
+            self.subset_size_len
+        )
+        return self._target_subset_2d
+    
 class system_config:
     def __init__(self):
         self.force_direct                   = None

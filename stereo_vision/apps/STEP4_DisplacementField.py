@@ -30,11 +30,11 @@ from stereo_vision.config_user import (
 
 mode = Test_Mode.in_plane
 
-pt_mat_len = int(np.sqrt(CF_user.TEST_POINT_ARRAY))
+pt_mat_len = int(CF_user.TEST_POINT_LEN)
 pt_mat_len_half = int((pt_mat_len - 1) / 2)
 
 file_name = f"{CF_user.LOAD_MIN}_{CF_user.LOAD_MAX}kg_image1.jpg"
-config = DIC_user_config(pt_mat_len, CF_user.TEST_SUBSET_SIZE_1B1A, CF_user.TEST_SUBSET_SIZE_2B2A)
+config = DIC_user_config()
 session = create_session(config)
 (
     session.load_stereo_images_ref(file_name)
@@ -49,7 +49,6 @@ session.get_reprojection_info()
 
 lib_ICGN        = session.lib.ICGN
 lib_PSO         = session.lib.PSO
-# lib_interp      = session.lib.interp
 
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
@@ -82,7 +81,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
             search_type         = DIC_search_pt_type.initial
         )
-        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
+        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_1B2B)
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
         session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
         session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
@@ -172,7 +171,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
+            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_1B1A)
             
             # ===== 2B2A ===== #
             H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
@@ -192,7 +191,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 search_type         = DIC_search_pt_type.normal
             )
             start_DIC = time.time()
-            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN)
+            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_2B2A)
             end_DIC = time.time()
             time_dic = end_DIC - start_DIC
             # print(f"time_dic: {time_dic:.4f}")
@@ -210,10 +209,10 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
             
             if CF_user.TEST_MODE == Test_Mode.in_plane.value: # in plane
-                # print(np.round(dis_in_sum, 6))
+                print(np.round(dis_in_sum, 6))
                 dis_sum += dis_in_sum
             else: # out of plane
-                # print(np.round(dis_out, 6))
+                print(np.round(dis_out, 6))
                 dis_sum += dis_out
             
             end = time.time()
@@ -229,6 +228,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             session.result_buf.disM_out[row][col] = dis_out
             session.result_buf.disM_in_1[row][col] = dis_in_1
             session.result_buf.disM_in_2[row][col] = dis_in_2
+            
     
 cv.imshow('img_1A_rec', session.img_buf.img1_cur_rec)
 cv.imshow('img_2A_rec', session.img_buf.img2_cur_rec)

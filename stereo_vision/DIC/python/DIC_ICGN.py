@@ -10,25 +10,18 @@ from ctypes import cdll, c_int, c_double, POINTER
 
 # update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
 def update_target_img_subset(subset_size_len, img, point_ini, lib_ICGN, warp_coef=None):
+    start_update = time.time()
     img = np.asarray(img, dtype=np.float64)
     img_flat = img.flatten(order='C') # C:n row major
     height, width = img.shape
     if warp_coef is None:
         warp_coef = np.eye(3, dtype=np.float64)
     target_matrix_g_flat = np.zeros(subset_size_len*subset_size_len, dtype=np.float64) # create new 1d array
-#     m = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
-    
-#     m.update_target_img_subset.argtypes = [
-#     POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double),
-#     c_int, c_int, c_int
-#     ]
-#     m.update_target_img_subset.restype = None
 
     img_flat_ptr                    = img_flat.ctypes.data_as(POINTER(c_double))
     target_matrix_g_flat_ptr        = target_matrix_g_flat.ctypes.data_as(POINTER(c_double))
     point_ini_ptr                   = point_ini.ctypes.data_as(POINTER(c_double))
     warp_coef_ptr                   = warp_coef.ctypes.data_as(POINTER(c_double))
-    start_update = time.time()
     
     lib_ICGN.update_target_img_subset(
           img_flat_ptr,
@@ -40,16 +33,15 @@ def update_target_img_subset(subset_size_len, img, point_ini, lib_ICGN, warp_coe
           subset_size_len
           )
     
+    target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
+
     end_update = time.time()
     time_update = end_update - start_update
-    # print(f"time_update: {time_update:.6f}")
-    
-    target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
+#     print(f"time_update: {time_update:.5f}")
     return target_matrix_g
 
 
-def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
-       
+def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
        img_ref_x                                 = dic_config.img_ref_pt.pt_x
@@ -76,22 +68,6 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
        img_ref_pt_pos                            = np.array((img_ref_y, img_ref_x), dtype=np.double)
        img_cur_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.double)
 
-       # ===== measure interger displacment ===== 
-       # lib = ctypes.CDLL(f"{CF.BUILD_DIR}/PSO.dll")
-       # parm type
-       # lib.process_image.argtypes = [
-       #        ctypes.POINTER(ctypes.c_double),    # ref_img
-       #        ctypes.POINTER(ctypes.c_double),    # cur_img
-       #        ctypes.c_int,                       # width
-       #        ctypes.c_int,                       # height
-       #        ctypes.c_int,                       # population
-       #        ctypes.c_int,                       # subset_side_len
-       #        ctypes.POINTER(ctypes.c_double),    # img_ref_pt
-       #        ctypes.POINTER(ctypes.c_double),    # img_cur_pt
-       #        ctypes.POINTER(ctypes.c_double)     # result_buffer
-       # ]
-       # lib.process_image.restype = None
-
        img_ref_ptr                               = img_ref.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
        img_cur_ptr                               = img_cur.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
        img_ref_pt_pos_ptr                        = img_ref_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
@@ -111,9 +87,9 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
               result_buffer_ptr
        )
 
-       PSO_dis_y = result_buffer[0]
-       PSO_dis_x = result_buffer[1]
-       correlation_coef = result_buffer[2]
+       PSO_dis_y            = result_buffer[0]
+       PSO_dis_x            = result_buffer[1]
+       correlation_coef     = result_buffer[2]
 
        """ ===== ICGN ===== """
        ref_mat_f = subset_ref_data
@@ -139,7 +115,7 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
        point_ini = np.array((img_ref_pt_x_guess, img_ref_pt_y_guess), dtype=np.float64)
        start_ICGN = time.time()
        while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_CNT:
-              target_mat_g = update_target_img_subset(subset_size_len, img_cur, point_ini, lib_ICGN, warp_function)
+              target_mat_g = ICGN_proc.update_target_img_subset(img_cur, point_ini, lib_ICGN, warp_function)
               target_mat_g_mean = np.mean(target_mat_g)
               delta_g = np.std(target_mat_g, ddof=0)
 
@@ -164,7 +140,7 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN):
               cnt += 1
        end_ICGN = time.time()
        time_ICGN = end_ICGN - start_ICGN
-       print(f"time_ICGN: {time_ICGN:.6f}")
+       # print(f"time_ICGN: {time_ICGN:.5f}")
        
        X = warp_function[0][2]
        Y = warp_function[1][2]
