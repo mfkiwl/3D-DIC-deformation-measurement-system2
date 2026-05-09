@@ -8,12 +8,13 @@ from stereo_vision.config_DIC import DIC_config
 from stereo_vision.DIC.python.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
-def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
+def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
+       
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
        img_ref_x                                 = dic_config.img_ref_pt.pt_x
        img_ref_y                                 = dic_config.img_ref_pt.pt_y
-       subset_size_len                           = dic_config.subset_ref_info.subset_side_len
+       subset_side_len                           = dic_config.subset_ref_info.subset_side_len
        subset_ref_data                           = dic_config.subset_ref_info.subset_data
        H_inv_mat                                 = dic_config.img_grad.H_inv_mat
        J_mat                                     = dic_config.img_grad.J_mat
@@ -21,42 +22,37 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
        population                                = dic_config.coarse_method_cfg.population
        search_type                               = dic_config.search_type
 
-       if search_type == DIC_search_pt_type.initial:
-              img_ref_pt_x_guess                 = img_ref_x - translation
-       else:
-              img_ref_pt_x_guess                 = img_ref_x
-       img_ref_pt_y_guess                        = img_ref_y
-       
-       h, w                                      = img_ref.shape
-       subset_side_len_half                      = int(0.5*(subset_size_len-1)) 
-       img_ref                                   = np.asarray(img_ref, dtype=np.double)
-       img_cur                                   = np.asarray(img_cur, dtype=np.double)
-       result_buffer                             = np.zeros(3, dtype=np.double) # [y, x, coef]
-       img_ref_pt_pos                            = np.array((img_ref_y, img_ref_x), dtype=np.double)
-       img_cur_pt_pos                            = np.array((img_ref_pt_y_guess, img_ref_pt_x_guess), dtype=np.double)
+       if img_ref.dtype != np.float64 or not img_ref.flags['C_CONTIGUOUS']:
+              img_ref = np.ascontiguousarray(img_ref, dtype=np.float64)
+       if img_cur.dtype != np.float64 or not img_cur.flags['C_CONTIGUOUS']:
+              img_cur = np.ascontiguousarray(img_cur, dtype=np.float64)
+       h, w = img_ref.shape
 
-       img_ref_ptr                               = img_ref.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-       img_cur_ptr                               = img_cur.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-       img_ref_pt_pos_ptr                        = img_ref_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-       img_cur_pt_pos_ptr                        = img_cur_pt_pos.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-       result_buffer_ptr                         = result_buffer.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) 
-             
-       # run_PSO
+       img_ref_ptr = img_ref.ctypes.data_as(ctypes.POINTER(c_double))
+       img_cur_ptr = img_cur.ctypes.data_as(ctypes.POINTER(c_double))
+
+       img_ref_pt_x_guess = img_ref_x - translation if search_type == DIC_search_pt_type.initial else img_ref_x
+       img_ref_pt_y_guess = img_ref_y
+
+       PSO_proc._ref_pt_pos[0] = img_ref_y; PSO_proc._ref_pt_pos[1] = img_ref_x
+       PSO_proc._cur_pt_pos[0] = img_ref_pt_y_guess; PSO_proc._cur_pt_pos[1] = img_ref_pt_x_guess
+       start_pso = time.time()
        lib_PSO.process_image(
               img_ref_ptr, 
               img_cur_ptr, 
               w, 
               h, 
               population,
-              subset_size_len,
-              img_ref_pt_pos_ptr,
-              img_cur_pt_pos_ptr,
-              result_buffer_ptr
+              subset_side_len,
+              PSO_proc._ref_pt_ptr,
+              PSO_proc._cur_pt_ptr,
+              PSO_proc._result_ptr
        )
-
-       PSO_dis_y            = result_buffer[0]
-       PSO_dis_x            = result_buffer[1]
-       correlation_coef     = result_buffer[2]
+       PSO_dis_y, PSO_dis_x = PSO_proc._result_buf[0], PSO_proc._result_buf[1]
+       end_pso = time.time()
+       time_pso = end_pso - start_pso
+       print(f"time_pso: {time_pso:.5f}")
+       # result_buffer = PSO_proc()
 
        """ ===== ICGN ===== """
        ref_mat_f = subset_ref_data
@@ -80,6 +76,7 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
        eps = 1e-12
        # [NOTICE] FROM NOW ON IS (X,Y), NOT (Y,X) anymore!!
        point_ini = np.array((img_ref_pt_x_guess, img_ref_pt_y_guess), dtype=np.float64)
+       subset_side_len_half = int(0.5*(subset_side_len-1)) 
        start_ICGN = time.time()
        while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_CNT:
               target_mat_g = ICGN_proc.update_target_img_subset(img_cur, point_ini, lib_ICGN, warp_function)

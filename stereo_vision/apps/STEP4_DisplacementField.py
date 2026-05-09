@@ -49,6 +49,10 @@ session.get_reprojection_info()
 
 lib_ICGN        = session.lib.ICGN
 lib_PSO         = session.lib.PSO
+icgn_proc_1B2B  = session.icgn_proc_1B2B
+icgn_proc_1B1A  = session.icgn_proc_1B1A
+icgn_proc_2B2A  = session.icgn_proc_2B2A
+pso_proc        = session.pso_proc
 
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
@@ -81,7 +85,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
             img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
             search_type         = DIC_search_pt_type.initial
         )
-        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_1B2B)
+        C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_1B2B, pso_proc)
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
         session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
         session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
@@ -171,7 +175,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
                 search_type         = DIC_search_pt_type.normal
             )
-            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_1B1A)
+            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_1B1A, pso_proc)
             
             # ===== 2B2A ===== #
             H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
@@ -191,10 +195,10 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
                 search_type         = DIC_search_pt_type.normal
             )
             start_DIC = time.time()
-            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_2B2A)
+            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_2B2A, pso_proc)
             end_DIC = time.time()
             time_dic = end_DIC - start_DIC
-            print(f"time_dic: {time_dic:.5f}")
+            # print(f"time_dic: {time_dic:.5f}")
 
             """ current world coordinate  """
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)

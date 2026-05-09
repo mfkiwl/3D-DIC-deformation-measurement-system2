@@ -32,6 +32,7 @@ class Stereo_DIC_session:
         self.icgn_proc_1B2B     = ICGN_processor(cfg.subset_len_1B2B)
         self.icgn_proc_1B1A     = ICGN_processor(cfg.subset_len_1B1A)
         self.icgn_proc_2B2A     = ICGN_processor(cfg.subset_len_2B2A)
+        self.pso_proc           = PSO_processor()
         
     def get_img_dir(self, cam_idx):
         if (CF_user.TEST_MODE == 0):
@@ -278,9 +279,14 @@ class ICGN_processor:
     def __init__(self, subset_size_len):
         self.subset_size_len = subset_size_len
         n = subset_size_len
-        self._target_subset_flat    = np.zeros(n * n, dtype=np.float64)
-        self._target_subset_2d      = self._target_subset_flat.reshape((n, n))   # view: zero copy
-        self._warp_eye              = np.eye(3, dtype=np.float64)
+        self._target_subset_flat            = np.zeros(n * n, dtype=np.float64)
+        self._target_subset_flat_ptr        = self._target_subset_flat.ctypes.data_as(POINTER(c_double))
+        self._target_subset_2d              = self._target_subset_flat.reshape((n, n))   # view: zero copy
+        self._warp_eye                      = np.eye(3, dtype=np.float64)
+        self._warp_inc                      = np.zeros((3, 3), dtype=np.float64)
+        self._warp_inc[2]                   = [0, 0, 1]  # fix the last row
+        self._delta_P                       = np.zeros(6, dtype=np.float64)
+        self._corr_sum                      = np.zeros((6, 1), dtype=np.float64)
 
     def update_target_img_subset(self, img, point_ini, lib_ICGN, warp_coef=None):
         img = np.asarray(img, dtype=np.float64)
@@ -301,7 +307,24 @@ class ICGN_processor:
             self.subset_size_len
         )
         return self._target_subset_2d
-    
+
+class PSO_processor:
+    def __init__(self):
+        self._result_buf     = np.zeros(3,  dtype=np.float64)
+        self._ref_pt_pos     = np.zeros(2,  dtype=np.float64)
+        self._cur_pt_pos     = np.zeros(2,  dtype=np.float64)
+        self._result_ptr     = self._result_buf.ctypes.data_as(POINTER(c_double))
+        self._ref_pt_ptr     = self._ref_pt_pos.ctypes.data_as(POINTER(c_double))
+        self._cur_pt_ptr     = self._cur_pt_pos.ctypes.data_as(POINTER(c_double))
+
+    def run_PSO(self, lib_PSO):
+        return
+
 class system_config:
     def __init__(self):
-        self.force_direct                   = None
+        self._img_ref                   = None
+        self._img_cur                   = None
+        self._result_buffer             = None
+        self._img_ref_pt_pos            = None
+        self._img_cur_pt_pos            = None
+        self._result_buffer             = None
