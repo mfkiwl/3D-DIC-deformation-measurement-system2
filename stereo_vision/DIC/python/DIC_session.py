@@ -219,10 +219,9 @@ class DIC_buffer:
 
 class Library:
     def __init__(self):
-        self.ICGN                       = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
-        self.PSO                        = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO.dll')
-        self.interp                     = cdll.LoadLibrary(f'{CF.BUILD_DIR}/cubic_interp.dll')
-
+        self.ICGN                           = cdll.LoadLibrary(f'{CF.BUILD_DIR}/ICGN.dll')
+        self.PSO                            = cdll.LoadLibrary(f'{CF.BUILD_DIR}/PSO.dll')
+        self.interp                         = cdll.LoadLibrary(f'{CF.BUILD_DIR}/cubic_interp.dll')
         self._set_type_ICGN()
         self._set_type_PSO()
         self._set_type_interp()

@@ -10,35 +10,35 @@ from ctypes import cdll, c_int, c_double, POINTER
 
 # update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
 def update_target_img_subset(subset_size_len, img, point_ini, lib_ICGN, warp_coef=None):
-    start_update = time.time()
-    img = np.asarray(img, dtype=np.float64)
-    img_flat = img.flatten(order='C') # C:n row major
-    height, width = img.shape
-    if warp_coef is None:
-        warp_coef = np.eye(3, dtype=np.float64)
-    target_matrix_g_flat = np.zeros(subset_size_len*subset_size_len, dtype=np.float64) # create new 1d array
+       start_update = time.time()
+       img = np.asarray(img, dtype=np.float64)
+       img_flat = img.flatten(order='C') # C:n row major
+       height, width = img.shape
+       if warp_coef is None:
+              warp_coef = np.eye(3, dtype=np.float64)
+       target_matrix_g_flat = np.zeros(subset_size_len*subset_size_len, dtype=np.float64) # create new 1d array
 
-    img_flat_ptr                    = img_flat.ctypes.data_as(POINTER(c_double))
-    target_matrix_g_flat_ptr        = target_matrix_g_flat.ctypes.data_as(POINTER(c_double))
-    point_ini_ptr                   = point_ini.ctypes.data_as(POINTER(c_double))
-    warp_coef_ptr                   = warp_coef.ctypes.data_as(POINTER(c_double))
-    
-    lib_ICGN.update_target_img_subset(
-          img_flat_ptr,
-          target_matrix_g_flat_ptr,
-          point_ini_ptr,
-          warp_coef_ptr,
-          width,
-          height,
-          subset_size_len
-          )
-    
-    target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
+       img_flat_ptr                    = img_flat.ctypes.data_as(POINTER(c_double))
+       target_matrix_g_flat_ptr        = target_matrix_g_flat.ctypes.data_as(POINTER(c_double))
+       point_ini_ptr                   = point_ini.ctypes.data_as(POINTER(c_double))
+       warp_coef_ptr                   = warp_coef.ctypes.data_as(POINTER(c_double))
+       
+       lib_ICGN.update_target_img_subset(
+              img_flat_ptr,
+              target_matrix_g_flat_ptr,
+              point_ini_ptr,
+              warp_coef_ptr,
+              width,
+              height,
+              subset_size_len
+              )
+       
+       target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
 
-    end_update = time.time()
-    time_update = end_update - start_update
-#     print(f"time_update: {time_update:.5f}")
-    return target_matrix_g
+       end_update = time.time()
+       time_update = end_update - start_update
+       #     print(f"time_update: {time_update:.5f}")
+       return target_matrix_g
 
 
 def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
@@ -104,8 +104,8 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
        yx = 0
        yy = 0
        # warp function coefficient of deformed subset
-       warp_function = np.array([(1+xx, xy, x),\
-                                 (yx, 1+yy, y),\
+       warp_function = np.array([(1+xx, xy, x),
+                                 (yx, 1+yy, y),
                                  (0, 0, 1)], dtype=np.float64)
 
        cnt = 0

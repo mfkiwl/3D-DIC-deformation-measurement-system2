@@ -67,7 +67,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
                                                            C1_B_x - subset_len_1B2B_half:C1_B_x + subset_len_1B2B_half + 1]
         H_inv_1B2B, J_1B2B = stereo_vision.tools.math.src.hessian.get_Hinv_jacobian(CF_user.TEST_SUBSET_SIZE_1B2B, img_grad_1B2B_x, img_grad_1B2B_y)
         C1B_subset_center_pt = np.array((C1_B_x,C1_B_y), dtype=np.float64)
-        img_1B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_1B1A, session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt, lib_ICGN)
+        img_1B_sub = session.icgn_proc_1B2B.update_target_img_subset(session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt, lib_ICGN, warp_coef=None)
         session.dic_buf.img_1B_sub_zone[row][col][:][:] = img_1B_sub
         
         dic_config = DIC_config (
@@ -99,7 +99,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         # ===== 2B2A ===== #
         subset_side_len_2B2A_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_2B2A-1))
         C2B_subset_center_pt = np.array((C2_B_x,C2_B_y), dtype=np.float64)
-        img_2B_sub = DIC_ICGN.update_target_img_subset(CF_user.TEST_SUBSET_SIZE_2B2A, session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt, lib_ICGN)
+        img_2B_sub = session.icgn_proc_1B2B.update_target_img_subset(session.img_buf.img2_ref_rec_gray, C2B_subset_center_pt, lib_ICGN, warp_coef=None)
         
         pad = 1  # Sobel need more 1 pixel to expand boarder
         img_2B_sub_pad = cv.copyMakeBorder(img_2B_sub, pad, pad, pad, pad, borderType=cv.BORDER_REFLECT)
@@ -194,7 +194,7 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, session.icgn_proc_2B2A)
             end_DIC = time.time()
             time_dic = end_DIC - start_DIC
-            # print(f"time_dic: {time_dic:.4f}")
+            print(f"time_dic: {time_dic:.5f}")
 
             """ current world coordinate  """
             X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
@@ -209,10 +209,10 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
             
             if CF_user.TEST_MODE == Test_Mode.in_plane.value: # in plane
-                print(np.round(dis_in_sum, 6))
+                # print(np.round(dis_in_sum, 6))
                 dis_sum += dis_in_sum
             else: # out of plane
-                print(np.round(dis_out, 6))
+                # print(np.round(dis_out, 6))
                 dis_sum += dis_out
             
             end = time.time()
