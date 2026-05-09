@@ -227,7 +227,7 @@ class Library:
         self._set_type_interp()
 
     def _set_type_ICGN(self):
-        self.ICGN.update_target_img_subset.argtypes = [
+        self.ICGN.update_target_img_subset_core.argtypes = [
             ctypes.POINTER(ctypes.c_double),
             ctypes.POINTER(ctypes.c_double),
             ctypes.POINTER(ctypes.c_double),
@@ -236,7 +236,7 @@ class Library:
             ctypes.c_int,
             ctypes.c_int
         ]
-        self.ICGN.update_target_img_subset.restype = None
+        self.ICGN.update_target_img_subset_core.restype = None
         return
     
     def _set_type_PSO(self):
@@ -291,7 +291,7 @@ class ICGN_processor:
         wc = self._warp_eye if warp_coef is None else warp_coef
         height, width = img.shape
 
-        lib_ICGN.update_target_img_subset(
+        lib_ICGN.update_target_img_subset_core(
             img_flat.ctypes.data_as(POINTER(c_double)),
             self._target_subset_flat.ctypes.data_as(POINTER(c_double)),
             point_ini.ctypes.data_as(POINTER(c_double)),

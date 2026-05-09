@@ -48,7 +48,7 @@ double get_bicubic_interp_value(
 
 // aim to update target_matrix_g according to warp_aft_coef
 __declspec(dllexport)
-void update_target_img_subset(
+void update_target_img_subset_core(
     double *img, double *target_matrix_g, double point_ini[2], double warp_aft_coef[][3],
     int width, int height, int size
 ){

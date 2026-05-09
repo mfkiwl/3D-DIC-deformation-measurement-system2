@@ -8,39 +8,6 @@ from stereo_vision.config_DIC import DIC_config
 from stereo_vision.DIC.python.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
-# update target_img_subset(subset_size_len * subset_size_len). if not deformed, use default setting
-def update_target_img_subset(subset_size_len, img, point_ini, lib_ICGN, warp_coef=None):
-       start_update = time.time()
-       img = np.asarray(img, dtype=np.float64)
-       img_flat = img.flatten(order='C') # C:n row major
-       height, width = img.shape
-       if warp_coef is None:
-              warp_coef = np.eye(3, dtype=np.float64)
-       target_matrix_g_flat = np.zeros(subset_size_len*subset_size_len, dtype=np.float64) # create new 1d array
-
-       img_flat_ptr                    = img_flat.ctypes.data_as(POINTER(c_double))
-       target_matrix_g_flat_ptr        = target_matrix_g_flat.ctypes.data_as(POINTER(c_double))
-       point_ini_ptr                   = point_ini.ctypes.data_as(POINTER(c_double))
-       warp_coef_ptr                   = warp_coef.ctypes.data_as(POINTER(c_double))
-       
-       lib_ICGN.update_target_img_subset(
-              img_flat_ptr,
-              target_matrix_g_flat_ptr,
-              point_ini_ptr,
-              warp_coef_ptr,
-              width,
-              height,
-              subset_size_len
-              )
-       
-       target_matrix_g = target_matrix_g_flat.reshape((subset_size_len, subset_size_len))
-
-       end_update = time.time()
-       time_update = end_update - start_update
-       #     print(f"time_update: {time_update:.5f}")
-       return target_matrix_g
-
-
 def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc):
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
