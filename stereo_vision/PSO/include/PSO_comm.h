@@ -10,7 +10,7 @@
 #define PSO_SUCCESS         0
 
 typedef struct PSO_context PSO_context;
-typedef struct SYS_INFO SYS_INFO;     // 告訴編譯器，這隻大白鯊晚點會出現
+typedef struct SYS_INFO SYS_INFO;
 typedef struct PSO_context PSO_context;
 
 typedef enum {
@@ -30,13 +30,10 @@ struct PSO_global_best {
 };
 
 struct PSO_LayoutConfig{
-    int side_len_pt;                    // matrix_side_len_points
-    double grid_spacing;                 // matrix_interval_pixel
-    int fixed_particles;                // inital all fixed particles
-    int shift_side_len_half;                    // correct the y corridate of point
-    //int side_len;                     // matrix_side_len (pixel) (from priv)
-    //int matrix_all_point;
-    //int matrix_side_len_half;
+    int side_len_pt;                   // matrix_side_len_points
+    double grid_spacing;               // matrix_interval_pixel
+    int fixed_particles;               // inital all fixed particles
+    int shift_side_len_half;           // correct the y corridate of point
 };
 
 struct PSO_config{
@@ -45,9 +42,9 @@ struct PSO_config{
     int dimension;
     int max_iter;
     // double iteration_rec; 
-    int v_max;                        // velocity_max
-    int v_min;                        // velocity_min
-    int v_ini;                        // velocity_initial
+    int v_max;                         // velocity_max
+    int v_min;                         // velocity_min
+    int v_ini;                         // velocity_initial
     double w_max;                      // w_upper
     double w_min;                      // w_lower
     double c1;                         // cognition_factor

@@ -112,17 +112,14 @@ double ZNCC_cost_function(struct PSO_context *ctx) {
 	double rel_pso_pt_x 				= zncc_ctx->subset_pt_cur_pos[1]; 	// Pi_x, Pi_y relative corrected coordinate
 	double img_cur_pt_y 				= zncc_ctx->img_pt_cur_pos[0]; 		// start point (fixed in whole PSO process)
 	double img_cur_pt_x 				= zncc_ctx->img_pt_cur_pos[1]; 		// start point (fixed in whole PSO process)
-
 	int img_width 						= ctx->img_info.width;
 	int img_height 						= ctx->img_info.height;
 	double *cur_img_data 				= ctx->img_info.cur_data;
 	int subset_side_len 				= zncc_ctx->ref_subset_info.side_len;
 	double *ref_subset_data 			= zncc_ctx->ref_subset_info.subset_data;
-	double *cur_subset_data 			= zncc_ctx->cur_subset_info.subset_data;
 
 	double img_pso_pt_y 				= img_cur_pt_y + rel_pso_pt_y; 		// pso particle absolute coordinate
 	double img_pso_pt_x 				= img_cur_pt_x + rel_pso_pt_x; 		// pso particle absolute coordinate
-
 	double img_pso_pt_y_shift 			= img_pso_pt_y - ((subset_side_len - 1) / 2.0f); // shift to left_top_point, means (0,0) point in subset matrix(n,n)
 	double img_pso_pt_x_shift			= img_pso_pt_x - ((subset_side_len - 1) / 2.0f);
 
@@ -135,16 +132,6 @@ double ZNCC_cost_function(struct PSO_context *ctx) {
 		SYS_DBG("img_pso_pt_x_shift: %.2f\n", img_pso_pt_x_shift);
 		return NAN; // result range: -1 ~ +1
 	}
-	
-	for (int row = 0; row < subset_side_len; row++) {
-		for (int col = 0; col < subset_side_len; col++) {
-			double img_pso_pt_y_shift_row = img_pso_pt_y_shift + row;
-			double img_pso_pt_x_shift_col = img_pso_pt_x_shift + col;
-			int pixel_idx = row * subset_side_len + col;
-			cur_subset_data[pixel_idx] = bilinear(cur_img_data, img_width, img_height,
-												img_pso_pt_x_shift_col, img_pso_pt_y_shift_row);
-		}
-	}
 
 	double sum = 0.0f, ref_sum_den = 0.0f, cur_sum_den = 0.0f;
 	double cur_subset_mean = get_subset_mean(&(zncc_ctx->cur_subset_info));
@@ -156,8 +143,10 @@ double ZNCC_cost_function(struct PSO_context *ctx) {
 
 	for (int row = 0; row < subset_side_len; row++) {
 		for (int col = 0; col < subset_side_len; col++) {
+			double img_pso_pt_y_shift_row = img_pso_pt_y_shift + row;
+			double img_pso_pt_x_shift_col = img_pso_pt_x_shift + col;
 			double mean_substrat_ref_subset = ((ref_subset_data[row * subset_side_len + col]) - ref_subset_mean);
-			double mean_substrat_cur_subset = ((cur_subset_data[row * subset_side_len + col]) - cur_subset_mean);
+			double mean_substrat_cur_subset = (bilinear(cur_img_data, img_width, img_height, img_pso_pt_x_shift_col, img_pso_pt_y_shift_row) - cur_subset_mean);
 			sum += mean_substrat_ref_subset * mean_substrat_cur_subset;
 			ref_sum_den += square(mean_substrat_ref_subset);
 			cur_sum_den += square(mean_substrat_cur_subset);
