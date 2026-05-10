@@ -21,6 +21,7 @@ typedef struct DIC_context {
 typedef struct DIC_subset_info {
     double *subset_data;
     double mean;
+    double ref_sum_den;
     int side_len;
     int total_pixels;
 } DIC_subset_info;
@@ -31,7 +32,8 @@ typedef struct DIC_ZNCC_context {
     double subset_pt_cur_pos[2];                 // Pi_x, Pi_y relative correct coordinate
     // double subset_pt_ref_pos[2];
     double img_pt_ref_pos[2];                      // object point
-    double img_pt_cur_pos[2]; 
+    double img_pt_cur_pos[2];
+    double *temp_subset;
 } DIC_ZNCC_context;
 
 typedef struct DIC_SSD_context {

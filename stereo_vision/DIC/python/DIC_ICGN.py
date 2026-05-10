@@ -78,7 +78,7 @@ def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
        point_ini = np.array((img_ref_pt_x_guess, img_ref_pt_y_guess), dtype=np.float64)
        subset_side_len_half = int(0.5*(subset_side_len-1)) 
        start_ICGN = time.time()
-       while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_CNT:
+       while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_MAX_ITER:
               target_mat_g = ICGN_proc.update_target_img_subset(img_cur, point_ini, lib_ICGN, warp_function)
               target_mat_g_mean = np.mean(target_mat_g)
               delta_g = np.std(target_mat_g, ddof=0)

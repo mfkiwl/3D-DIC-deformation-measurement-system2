@@ -48,9 +48,9 @@ CAL_ACCURACY                    = 0.001
 CAL_SQUARE_SIZE                 = 8 # unit: mm
 
 # DIC
-DIC_ICGN_ACCURACY_INIT          = 0.1
-DIC_ICGN_ACCURACY               = 0.0001
-DIC_ICGN_CNT                    = 10
+DIC_ICGN_ACCURACY_INIT          = 1
+DIC_ICGN_ACCURACY               = 0.001
+DIC_ICGN_MAX_ITER               = 10
 
 
 class Test_Mode(Enum):
