@@ -2,23 +2,14 @@
 print("\n<< Stereo_DIC_PSO_ICGN >>")
 import numpy as np
 import cv2 as cv
-import os
-import sys
+from copy import deepcopy
 import time
 from stereo_vision import config_user as CF_user
 import stereo_vision.tools.math.src.hessian
 import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
-import stereo_vision.camera_calibration.python.image_calibration as img_cal
 from stereo_vision.DIC.python.DIC_session import create_session
 from stereo_vision.tools.vision.src.click_tool import get_click_point
-from stereo_vision.tools.vision.src.processor import rotate_image, extract_patch_bicubic
-from stereo_vision.DIC.python.common import DIC_search_pt_type
-
-from stereo_vision.config_DIC import (
-    DIC_config, DIC_Image, Img_Ref_Pt_Pos, 
-    Stereo_DIC_Init_Param, Subset_Info, 
-    Img_Grad_Info, Coarse_Search_Method, PSO_Config
-)
+import stereo_vision.DIC.python.common as dic_common
 
 from stereo_vision.DIC.python.DIC_session import (
     DIC_user_config, create_session,
@@ -63,7 +54,7 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         C1_B_y = int(CF_user.TEST_INTERVAL*ROW + C1_B_y_ini)
         session.dic_buf.C1B_points[row][col][0] = C1_B_y
         session.dic_buf.C1B_points[row][col][1] = C1_B_x
-        # ===== Image gradient =====
+        # ===== image gradient =====
         subset_len_1B2B_half = int(0.5*(CF_user.TEST_SUBSET_SIZE_1B2B-1))
         img_grad_1B2B_y = session.img_buf.img1_ref_sobel_y[C1_B_y - subset_len_1B2B_half:C1_B_y + subset_len_1B2B_half + 1,\
                                                            C1_B_x - subset_len_1B2B_half:C1_B_x + subset_len_1B2B_half + 1]
@@ -73,19 +64,10 @@ for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         C1B_subset_center_pt = np.array((C1_B_x, C1_B_y), dtype=np.float64)
         img_1B_sub = session.icgn_proc_1B2B.update_target_img_subset(session.img_buf.img1_ref_rec_gray, C1B_subset_center_pt, lib_ICGN, warp_coef=None)
         session.dic_buf.img_1B_sub_zone[row][col][:][:] = img_1B_sub
-        
-        dic_config = DIC_config (
-            coarse_method       = Coarse_Search_Method.PSO,
-            coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
-            dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img2_ref_rec_gray),
-            img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
-            init_param          = Stereo_DIC_Init_Param(translate = (C1_B_x_ini - C2_B_x_ini)),
-            subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B2B),
-            subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B2B),
-            img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B2B, J_mat=J_1B2B),
-            search_type         = DIC_search_pt_type.initial
-        )
+
+        dic_config = dic_common.build_dic_cfg_1B2B(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B2B, J_1B2B, (C1_B_x_ini - C2_B_x_ini))
         C2_B_x, C2_B_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_1B2B, pso_proc)
+
         X_ref, Y_ref, Z_ref = session.disparity_to_3d_pt(C1_B_x, C1_B_y, C2_B_x)
         session.dic_buf.C2B_points[row][col] = (C2_B_y, C2_B_x)
         session.dic_buf.WC_bef_zone[row][col] = (X_ref, Y_ref, Z_ref)
@@ -131,18 +113,6 @@ cv.destroyAllWindows()
 dis_sum = 0
 total_time = 0
 
-base_cfg = DIC_config (
-    coarse_method       = Coarse_Search_Method.PSO,
-    coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
-    dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img1_cur_rec_gray),
-    img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
-    init_param          = Stereo_DIC_Init_Param(translate = None),
-    subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
-    subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
-    img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
-    search_type         = DIC_search_pt_type.normal
-)
-
 for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
     loaded_file_name = f"{CF_user.LOAD_CUR}_{CF_user.LOAD_MAX}kg_image{img_idx}.jpg"
     print(f"loaded_file_name: {loaded_file_name}")
@@ -160,42 +130,19 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
 
             # ===== 1B1A ===== #
             start = time.time()
-            H_inv_1B1A[:][:]        = session.dic_buf.H1B1A_inv_all[row][col][:][:]
-            J_1B1A[:][:][:]         = session.dic_buf.J1B1A_all[row][col][:][:][:]
+            H_inv_1B1A              = session.dic_buf.H1B1A_inv_all[row][col][:][:]
+            J_1B1A                  = session.dic_buf.J1B1A_all[row][col][:][:][:]
             img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
+            dic_config              = dic_common.build_dic_cfg_1B1A(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=0)
+            C1_A_x, C1_A_y          = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_1B1A, pso_proc)
 
-            dic_config = DIC_config (
-                coarse_method       = Coarse_Search_Method.PSO,
-                coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
-                dic_image           = DIC_Image(ref = session.img_buf.img1_ref_rec_gray, cur = session.img_buf.img1_cur_rec_gray),
-                img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C1_B_x, pt_y=C1_B_y),
-                init_param          = Stereo_DIC_Init_Param(translate = None),
-                subset_ref_info     = Subset_Info(img_1B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
-                subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_1B1A),
-                img_grad            = Img_Grad_Info(H_inv_mat=H_inv_1B1A, J_mat=J_1B1A),
-                search_type         = DIC_search_pt_type.normal
-            )
-            C1_A_x, C1_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_1B1A, pso_proc)
-            
             # ===== 2B2A ===== #
-            H_inv_2B2A[:][:]        = session.dic_buf.H2B2A_inv_all[row][col][:][:]
-            J_2B2A[:][:][:]         = session.dic_buf.J2B2A_all[row][col][:][:][:]
+            H_inv_2B2A              = session.dic_buf.H2B2A_inv_all[row][col][:][:]
+            J_2B2A                  = session.dic_buf.J2B2A_all[row][col][:][:][:]
             img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
-
-            
-            dic_config = DIC_config (
-                coarse_method       = Coarse_Search_Method.PSO,
-                coarse_method_cfg   = PSO_Config(CF_user.PSO_population),
-                dic_image           = DIC_Image(ref = session.img_buf.img2_ref_rec_gray, cur = session.img_buf.img2_cur_rec_gray),
-                img_ref_pt          = Img_Ref_Pt_Pos(pt_x=C2_B_x, pt_y=C2_B_y),
-                init_param          = Stereo_DIC_Init_Param(translate = None),
-                subset_ref_info     = Subset_Info(img_2B_sub, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
-                subset_cur_info     = Subset_Info(None, subset_side_len = CF_user.TEST_SUBSET_SIZE_2B2A),
-                img_grad            = Img_Grad_Info(H_inv_mat=H_inv_2B2A, J_mat=J_2B2A),
-                search_type         = DIC_search_pt_type.normal
-            )
+            dic_config              = dic_common.build_dic_cfg_2B2A(session, C2_B_x, C2_B_y, img_2B_sub, H_inv_2B2A, J_2B2A, trans=0)
             start_DIC = time.time()
-            C2_A_x, C2_A_y = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_2B2A, pso_proc)
+            C2_A_x, C2_A_y          = DIC_ICGN.run_DIC(dic_config, lib_PSO, lib_ICGN, icgn_proc_2B2A, pso_proc)
             end_DIC = time.time()
             time_dic = end_DIC - start_DIC
             # print(f"time_dic: {time_dic:.5f}")
@@ -223,12 +170,14 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             # print(f"increase_time: {increase_time:.4f}")
             total_time += increase_time
 
-            session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5, (0, 255, 255), 1)  
-            session.img_buf.img2_cur_rec = cv.circle(session.img_buf.img2_cur_rec, (int(C2_A_x), int(C2_A_y)), 5,(0, 255, 255), 1)  
-            
             session.result_buf.disM_out[row][col] = dis_out
             session.result_buf.disM_in_1[row][col] = dis_in_1
             session.result_buf.disM_in_2[row][col] = dis_in_2
+
+            session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5, (0, 255, 255), 1)  
+            session.img_buf.img2_cur_rec = cv.circle(session.img_buf.img2_cur_rec, (int(C2_A_x), int(C2_A_y)), 5,(0, 255, 255), 1)  
+            
+
             
     
 cv.imshow('img_1A_rec', session.img_buf.img1_cur_rec)

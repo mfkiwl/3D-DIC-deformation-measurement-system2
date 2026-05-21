@@ -15,7 +15,7 @@ class Img_Grad_Info:
 
 @dataclass
 class Stereo_DIC_Init_Param:
-    translate: int
+    translate: int = 0
 
 @dataclass
 class PSO_Config:
