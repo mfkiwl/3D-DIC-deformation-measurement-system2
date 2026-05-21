@@ -1,4 +1,5 @@
 from enum import IntEnum
+import numpy as np
 from stereo_vision import config_user as CF_user
 from copy import deepcopy
 from stereo_vision.config_DIC import (
@@ -76,3 +77,32 @@ def data_init_1B1A():
 
 def data_init_2B2A():
     return
+
+def update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x):
+    X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(
+        C1_A_x,
+        C1_A_y,
+        C2_A_x
+    )
+
+    wc_cur = np.array((X_cur, Y_cur, Z_cur))
+    wc_bef = session.dic_buf.WC_bef_zone[row][col]
+
+    session.dic_buf.WC_aft_zone[row][col] = wc_cur
+
+    dis_3D_vec = wc_cur - wc_bef
+    session.result_buf.disM[row][col][:] = dis_3D_vec
+
+    dis_in_1 = dis_3D_vec[0]
+    dis_in_2 = dis_3D_vec[1]
+    dis_out  = dis_3D_vec[2]
+
+    # in-plane displacement magnitude
+    dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
+
+    # save result
+    session.result_buf.disM_out[row][col]  = dis_out
+    session.result_buf.disM_in_1[row][col] = dis_in_1
+    session.result_buf.disM_in_2[row][col] = dis_in_2
+
+    return dis_out, dis_in_sum

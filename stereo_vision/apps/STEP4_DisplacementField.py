@@ -148,38 +148,24 @@ for img_idx in range(1, CF_user.TEST_TARGET_IMG_PAIR_NUM + 1,1):
             # print(f"time_dic: {time_dic:.5f}")
 
             """ current world coordinate  """
-            X_cur, Y_cur, Z_cur = session.disparity_to_3d_pt(C1_A_x, C1_A_y, C2_A_x)
-
-            session.dic_buf.WC_aft_zone[row][col] = (X_cur, Y_cur, Z_cur)
-            session.result_buf.disM[row][col][:] = session.dic_buf.WC_aft_zone[row][col][:] - session.dic_buf.WC_bef_zone[row][col][:]
-            
-            dis_out = session.dic_buf.WC_aft_zone[row][col][2]-session.dic_buf.WC_bef_zone[row][col][2]
-            dis_in_1 = session.dic_buf.WC_aft_zone[row][col][0]-session.dic_buf.WC_bef_zone[row][col][0] 
-            dis_in_2 = session.dic_buf.WC_aft_zone[row][col][1]-session.dic_buf.WC_bef_zone[row][col][1]
-            dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
-            
-            if CF_user.TEST_MODE == Test_Mode.in_plane.value: # in plane
-                # print(np.round(dis_in_sum, 6))
-                dis_sum += dis_in_sum
-            else: # out of plane
-                # print(np.round(dis_out, 6))
-                dis_sum += dis_out
+            dis_out, dis_in_sum = dic_common.update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x)
             
             end = time.time()
             increase_time = end - start
             # print(f"increase_time: {increase_time:.4f}")
             total_time += increase_time
 
-            session.result_buf.disM_out[row][col] = dis_out
-            session.result_buf.disM_in_1[row][col] = dis_in_1
-            session.result_buf.disM_in_2[row][col] = dis_in_2
+            if CF_user.TEST_MODE == Test_Mode.in_plane.value:
+                # print(np.round(dis_in_sum, 6))
+                dis_sum += dis_in_sum
+            else:
+                # print(np.round(dis_out, 6))
+                dis_sum += dis_out
 
             session.img_buf.img1_cur_rec = cv.circle(session.img_buf.img1_cur_rec, (int(C1_A_x), int(C1_A_y)), 5, (0, 255, 255), 1)  
             session.img_buf.img2_cur_rec = cv.circle(session.img_buf.img2_cur_rec, (int(C2_A_x), int(C2_A_y)), 5,(0, 255, 255), 1)  
             
 
-            
-    
 cv.imshow('img_1A_rec', session.img_buf.img1_cur_rec)
 cv.imshow('img_2A_rec', session.img_buf.img2_cur_rec)
 cv.waitKey(0)
