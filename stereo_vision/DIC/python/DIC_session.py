@@ -14,6 +14,7 @@ class DIC_user_config:
         self.subset_len_1B2B            = CF_user.TEST_SUBSET_SIZE_1B2B
         self.subset_len_1B1A            = CF_user.TEST_SUBSET_SIZE_1B1A
         self.subset_len_2B2A            = CF_user.TEST_SUBSET_SIZE_2B2A
+        self.tranlation                 = None
 
 class Stereo_DIC_result:
     def __init__(self):

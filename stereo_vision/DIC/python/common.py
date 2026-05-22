@@ -1,6 +1,8 @@
 from enum import IntEnum
 import numpy as np
 from stereo_vision import config_user as CF_user
+import stereo_vision.DIC.python.common as dic_common
+import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
 from copy import deepcopy
 from stereo_vision.config_DIC import (
     DIC_config, DIC_Image, Img_Ref_Pt_Pos, 
@@ -106,3 +108,31 @@ def update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x):
     session.result_buf.disM_in_2[row][col] = dis_in_2
 
     return dis_out, dis_in_sum
+
+
+def run_dic_1B2B(session, row, col):
+    C1_B_y, C1_B_x          = session.dic_buf.C1B_points[row][col]
+    H_inv_1B1A              = session.dic_buf.H1B1A_inv_all[row][col][:][:]
+    J_1B1A                  = session.dic_buf.J1B1A_all[row][col][:][:][:]
+    img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
+    dic_config              = dic_common.build_dic_cfg_1B2B(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=session.cfg.tranlation)
+    C2_B_x, C2_B_y          = DIC_ICGN.run_DIC(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B2B, session.pso_proc)
+    return C2_B_x, C2_B_y
+
+def run_dic_1B1A(session, row, col):
+    C1_B_y, C1_B_x          = session.dic_buf.C1B_points[row][col]
+    H_inv_1B1A              = session.dic_buf.H1B1A_inv_all[row][col][:][:]
+    J_1B1A                  = session.dic_buf.J1B1A_all[row][col][:][:][:]
+    img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
+    dic_config              = dic_common.build_dic_cfg_1B1A(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=0)
+    C1_A_x, C1_A_y          = DIC_ICGN.run_DIC(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B1A, session.pso_proc)
+    return C1_A_x, C1_A_y
+
+def run_dic_2B2A(session, row, col):
+    C2_B_y, C2_B_x          = session.dic_buf.C2B_points[row][col]
+    H_inv_2B2A              = session.dic_buf.H2B2A_inv_all[row][col][:][:]
+    J_2B2A                  = session.dic_buf.J2B2A_all[row][col][:][:][:]
+    img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
+    dic_config              = dic_common.build_dic_cfg_2B2A(session, C2_B_x, C2_B_y, img_2B_sub, H_inv_2B2A, J_2B2A, trans=0)
+    C2_A_x, C2_A_y          = DIC_ICGN.run_DIC(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_2B2A, session.pso_proc)
+    return C2_A_x, C2_A_y
