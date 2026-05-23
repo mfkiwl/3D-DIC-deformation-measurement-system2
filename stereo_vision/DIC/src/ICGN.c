@@ -3,22 +3,10 @@
 #include<stdlib.h>
 #include<math.h>
 
-// Keys cubic kernel (a = -0.5, Catmull-Rom)
-static inline double cubic_weight(double t, double a) {
-    double x = t < 0 ? -t : t;   // fabs，inline
-    double x2 = x * x;
-    double x3 = x2 * x;
-    if (x < 1.0)
-        return (a + 2)*x3 - (a + 3)*x2 + 1;
-    else if (x < 2.0)
-        return a*x3 - 5*a*x2 + 8*a*x - 4*a;
-    return 0.0;
-}
-
 // constrain boundary
 inline int clamp(int v, int low_limit, int high_limit) {
-    if (v < low_limit) return low_limit;
-    if (v > high_limit) return high_limit;
+    v = (v < low_limit) ? low_limit : v;
+    v = (v > high_limit) ? high_limit : v;
     return v;
 }
 
@@ -32,11 +20,20 @@ double get_bicubic_interp_value(double *img, int width, int height, double x, do
     double wx[4], wy[4];
 
     double dx = x - x0;
-    double dy = y - y0;
 
+    double t, cubic_x, cubic_x2, cubic_x3;
     for (int i = -1; i <= 2; i++) {
-        wx[i + 1] = cubic_weight(dx - i, a);
-        wy[i + 1] = cubic_weight(dy - i, a);
+        t = dx - i;
+        cubic_x = fabs(t);
+        cubic_x2 = cubic_x * cubic_x;
+        cubic_x3 = cubic_x2 * cubic_x;
+
+        if (cubic_x < 1.0)
+            wx[i + 1] = (a + 2)*cubic_x3 - (a + 3)*cubic_x2 + 1;
+        else if (cubic_x < 2.0)
+            wx[i + 1] = a*cubic_x3 - 5*a*cubic_x2 + 8*a*cubic_x - 4*a;
+        else
+            wx[i + 1] = 0.0;
     }
 
     for (int m = -1; m <= 2; m++) {

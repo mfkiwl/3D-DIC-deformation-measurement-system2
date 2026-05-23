@@ -35,7 +35,7 @@ def inverse_warp_func(delta_P):
        return warp_inc_function_inv
               
 
-
+# @profile
 def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
        
        img_ref                                   = dic_config.dic_image.ref
