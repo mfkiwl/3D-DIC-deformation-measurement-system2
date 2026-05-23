@@ -8,7 +8,7 @@ from stereo_vision.config_DIC import DIC_config
 from stereo_vision.DIC.python.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
-def run_DIC(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
+def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
        
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
