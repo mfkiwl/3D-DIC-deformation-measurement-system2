@@ -33,7 +33,7 @@ TEST_SCAN_SIZE_2B2A             = 31
 TEST_GAUSSIANBLUR_EN            = 0
 
 # PSO parms
-PSO_population                  = 40
+PSO_population                  = 30
 
 ## CAPTURE IMAGE
 LOAD_MIN                        = 0
