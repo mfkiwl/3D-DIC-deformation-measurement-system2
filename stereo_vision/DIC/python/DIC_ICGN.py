@@ -8,6 +8,34 @@ from stereo_vision.config_DIC import DIC_config
 from stereo_vision.DIC.python.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
+
+def inverse_warp_func(delta_P):
+       a = 1 + delta_P[1]
+       b = delta_P[2]
+       tx = delta_P[0]
+
+       c = delta_P[4]
+       d = 1 + delta_P[5]
+       ty = delta_P[3]
+
+       det = a*d - b*c
+       inv_det = 1.0 / det
+
+       warp_inc_function_inv = np.array([
+       [ d*inv_det,
+       -b*inv_det,
+       (b*ty - d*tx)*inv_det],
+
+       [-c*inv_det,
+       a*inv_det,
+       (c*tx - a*ty)*inv_det],
+
+       [0,0,1]
+       ], dtype=np.float64)
+       return warp_inc_function_inv
+              
+
+# @profile
 def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc):
        
        img_ref                                   = dic_config.dic_image.ref
@@ -51,7 +79,7 @@ def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc)
        PSO_dis_y, PSO_dis_x = PSO_proc._result_buf[0], PSO_proc._result_buf[1]
        end_pso = time.time()
        time_pso = end_pso - start_pso
-       print(f"time_pso: {time_pso:.5f}")
+       # print(f"time_pso: {time_pso:.5f}")
        # result_buffer = PSO_proc()
 
        """ ===== ICGN ===== """
@@ -81,7 +109,8 @@ def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc)
        while limit > CF_user.DIC_ICGN_ACCURACY and cnt < CF_user.DIC_ICGN_MAX_ITER:
               target_mat_g = ICGN_proc.update_target_img_subset(img_cur, point_ini, lib_ICGN, warp_function)
               target_mat_g_mean = np.mean(target_mat_g)
-              delta_g = np.std(target_mat_g, ddof=0)
+              diff_g = target_mat_g - target_mat_g_mean
+              delta_g = np.sqrt(np.mean(diff_g * diff_g))
 
               corelation_sum = np.zeros(6, dtype=np.float64) 
               ratio = delta_f / (delta_g + eps) # eps: prevent zero
@@ -89,7 +118,7 @@ def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc)
               corelation_sum = np.tensordot(J_mat, residual_F_G, axes=([0,1],[0,1]))
 
               corelation_sum = corelation_sum.reshape(6,1) 
-              delta_P = (-H_inv_mat @ corelation_sum).flatten() # flatten turn 2d array to 1d array to get scalar
+              delta_P = (-H_inv_mat @ corelation_sum).ravel() # flatten turn 2d array to 1d array to get scalar
               limit = np.sqrt(np.square(delta_P[0]) + np.square(delta_P[1]*subset_side_len_half)+
                               np.square(delta_P[2]*subset_side_len_half) + np.square(delta_P[3])+
                               np.square(delta_P[4]*subset_side_len_half) + np.square(delta_P[5]*subset_side_len_half))
@@ -97,14 +126,15 @@ def run_DIC_core(dic_config: DIC_config, lib_PSO, lib_ICGN, ICGN_proc, PSO_proc)
               warp_inc_function = np.array([[1+delta_P[1], delta_P[2], delta_P[0]],
                                            [delta_P[4], 1+delta_P[5], delta_P[3]],
                                            [0, 0, 1]], dtype=np.float64)
+              
+              warp_inc_function_inv = inverse_warp_func(delta_P)
 
-              warp_inc_function_inv = np.linalg.inv(warp_inc_function)
               # update warp function
               warp_function = warp_function @ warp_inc_function_inv
               cnt += 1
        end_ICGN = time.time()
        time_ICGN = end_ICGN - start_ICGN
-       # print(f"time_ICGN: {time_ICGN:.5f}")
+       print(f"time_ICGN: {time_ICGN:.5f}")
        
        X = warp_function[0][2]
        Y = warp_function[1][2]
