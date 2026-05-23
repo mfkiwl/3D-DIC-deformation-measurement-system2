@@ -77,12 +77,9 @@ def update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x):
 
     wc_cur = np.array((X_cur, Y_cur, Z_cur))
     wc_bef = session.dic_buf.WC_bef_zone[row][col]
-
-    session.dic_buf.WC_aft_zone[row][col] = wc_cur
-
     dis_3D_vec = wc_cur - wc_bef
+    session.dic_buf.WC_aft_zone[row][col] = wc_cur
     session.result_buf.disM[row][col][:] = dis_3D_vec
-
     dis_in_1 = dis_3D_vec[0]
     dis_in_2 = dis_3D_vec[1]
     dis_out  = dis_3D_vec[2]
@@ -90,7 +87,6 @@ def update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x):
     # in-plane displacement magnitude
     dis_in_sum = np.sqrt(dis_in_1**2 + dis_in_2**2)
 
-    # save result
     session.result_buf.disM_out[row][col]  = dis_out
     session.result_buf.disM_in_1[row][col] = dis_in_1
     session.result_buf.disM_in_2[row][col] = dis_in_2
@@ -98,14 +94,33 @@ def update_displacement_result(session, row, col, C1_A_x, C1_A_y, C2_A_x):
     return dis_out, dis_in_sum
 
 
+def get_ref_sub(session, C1_B_x, C1_B_y):
+    return session.icgn_proc_1B2B.update_target_img_subset(
+        session.img_buf.img1_ref_rec_gray,
+        np.array((C1_B_x, C1_B_y), dtype=np.float64),
+        session.lib.ICGN,
+        warp_coef=None
+    )
+
 def run_dic_1B2B(session, row, col):
     C1_B_y, C1_B_x          = session.dic_buf.C1B_points[row][col]
     H_inv_1B1A              = session.dic_buf.H_1B_inv_all[row][col][:][:]
     J_1B1A                  = session.dic_buf.J_1B_all[row][col][:][:][:]
-    img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
-    dic_config              = build_dic_cfg_1B2B(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=session.cfg.tranlation)
-    C2_B_x, C2_B_y          = DIC_ICGN.run_DIC_core(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B2B, session.pso_proc)
-    return C2_B_x, C2_B_y
+    img_1B_sub              = get_ref_sub(session, C1_B_x, C1_B_y)
+
+    session.dic_buf.img_1B_sub_zone[row][col] = img_1B_sub
+
+    dic_config = build_dic_cfg_1B2B(
+        session,
+        C1_B_x,
+        C1_B_y,
+        img_1B_sub,
+        H_inv_1B1A,
+        J_1B1A,
+        trans=session.cfg.tranlation
+    )
+    return DIC_ICGN.run_DIC_core(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B2B, session.pso_proc)
+
 
 def run_dic_1B1A(session, row, col):
     C1_B_y, C1_B_x          = session.dic_buf.C1B_points[row][col]
