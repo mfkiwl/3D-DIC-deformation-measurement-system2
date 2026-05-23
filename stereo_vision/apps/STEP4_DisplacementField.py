@@ -1,10 +1,8 @@
 
 print("\n<< Stereo_DIC_PSO_ICGN >>")
-import numpy as np
 import cv2 as cv
 import time
 from stereo_vision import config_user as CF_user
-import stereo_vision.tools.math.src.hessian
 from stereo_vision.DIC.python.DIC_session import create_session
 from stereo_vision.tools.vision.src.click_tool import get_click_point
 import stereo_vision.DIC.python.run_DIC as run_dic

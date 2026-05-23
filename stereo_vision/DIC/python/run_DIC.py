@@ -3,6 +3,8 @@ import numpy as np
 from stereo_vision import config_user as CF_user
 import stereo_vision.DIC.python.common as dic_common
 import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
+import stereo_vision.DIC.python.DIC_coarse_PSO as DIC_coarse_PSO
+
 from copy import deepcopy
 from stereo_vision.config_DIC import (
     DIC_config, DIC_Image, Img_Ref_Pt_Pos, 
@@ -119,7 +121,8 @@ def run_dic_1B2B(session, row, col):
         J_1B1A,
         trans=session.cfg.tranlation
     )
-    return DIC_ICGN.run_DIC_core(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B2B, session.pso_proc)
+    coarse_x, coarse_y = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_1B2B, coarse_x, coarse_y)
 
 
 def run_dic_1B1A(session, row, col):
