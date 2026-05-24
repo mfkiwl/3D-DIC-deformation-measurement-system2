@@ -42,6 +42,7 @@ int execute_pso_algorithm(struct PSO_context *ctx) {
 }
 
 void st_pso_config_init(struct PSO_context *ctx) {
+	struct DIC_ZNCC_context *zncc_ctx = (struct DIC_ZNCC_context *)ctx->priv;
     // ctx->config.population 			= 		50; // depends on input
     ctx->config.dimension 				= 		2;
     ctx->config.max_iter 				= 		6; 
@@ -59,7 +60,7 @@ void st_pso_config_init(struct PSO_context *ctx) {
     ctx->config.dec_factor 				= 		1.0f;
     ctx->config.inc_factor 				=		1.0f;
 
-    ctx->config.border_side_len 		= 		21; 		// PSO MAX displacement (pixel)
+    ctx->config.border_side_len 		= 		(zncc_ctx->ref_subset_info.side_len) * 0.8;
 	ctx->global_best.value				=		-FLT_MAX;
 }
 
