@@ -7,6 +7,7 @@ import ctypes
 from ctypes import cdll, c_int, c_double, POINTER
 import stereo_vision.camera_calibration.python.image_calibration as img_cal
 from stereo_vision.tools.vision.src.processor import rotate_image, check_file_path, run_Gaussian_blur
+import stereo_vision.DIC.python.pyramid_tool as pyramid_tool
 
 class DIC_user_config:
     def __init__(self):
@@ -197,6 +198,9 @@ class img_buffer:
         self.img2_cur_sobel_y               = None
         self.img2_cur_sobel_x               = None
 
+        self.img1_cur_pyramid               = None
+        self.img2_cur_pyramid               = None
+
 class calibration_info:
     def __init__(self):
         self.baseline                       = None
@@ -329,3 +333,11 @@ class system_config:
         self._img_ref_pt_pos            = None
         self._img_cur_pt_pos            = None
         self._result_buffer             = None
+
+
+class Pyramid:
+    def __init__(self, img, levels):
+        self.pyramid = pyramid_tool.build_pyramid(img, levels)
+
+    def get(self, level):
+        return self.pyramid[level]

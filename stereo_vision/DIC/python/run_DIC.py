@@ -131,8 +131,9 @@ def run_dic_1B1A(session, row, col):
     J_1B1A                  = session.dic_buf.J_1B_all[row][col][:][:][:]
     img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
     dic_config              = build_dic_cfg_1B1A(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=0)
-    C1_A_x, C1_A_y          = DIC_ICGN.run_DIC_core(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_1B1A, session.pso_proc)
-    return C1_A_x, C1_A_y
+    coarse_x, coarse_y      = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_1B1A, coarse_x, coarse_y)
+
 
 def run_dic_2B2A(session, row, col):
     C2_B_y, C2_B_x          = session.dic_buf.C2B_points[row][col]
@@ -140,5 +141,5 @@ def run_dic_2B2A(session, row, col):
     J_2B2A                  = session.dic_buf.J_2B_all[row][col][:][:][:]
     img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
     dic_config              = build_dic_cfg_2B2A(session, C2_B_x, C2_B_y, img_2B_sub, H_inv_2B2A, J_2B2A, trans=0)
-    C2_A_x, C2_A_y          = DIC_ICGN.run_DIC_core(dic_config, session.lib.PSO, session.lib.ICGN, session.icgn_proc_2B2A, session.pso_proc)
-    return C2_A_x, C2_A_y
+    coarse_x, coarse_y      = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_2B2A, coarse_x, coarse_y)

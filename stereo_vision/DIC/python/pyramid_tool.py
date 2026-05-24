@@ -26,6 +26,12 @@ def show_pyramid(pyramid):
     plt.show()
 
 
+def get_pyramid_level(img, levels, max_level=3):
+    pyramid_img_list = build_pyramid(img, levels=max_level)
+    return pyramid_img_list[levels]
+
+
+
 if __name__ == "__main__":
     # read image (grayscale)
     img = cv2.imread("stereo_vision/data/1.jpg", cv2.IMREAD_GRAYSCALE)
