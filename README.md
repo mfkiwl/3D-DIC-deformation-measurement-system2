@@ -55,7 +55,6 @@ python -m stereo_vision.apps.STEP2_StereoCalibration
 
 ![step2](https://github.com/Adia0322/Stereo-digital-image-correlation/assets/89566671/b11a0ef2-1789-4eb8-ad4d-472e5f6ff5a9)
 
-  
 
 ### STEP3: check image correaltion results (optional)
 You can test if the calibration works in this step
@@ -73,11 +72,11 @@ mingw32-make
 ```shell
 python -m stereo_vision.apps.STEP4_DisplacementField
 ```
-And you can obtain the average displacemnt of rubber in surface
-![step4-1](https://github.com/Adia0322/Stereo-digital-image-correlation/assets/89566671/00580237-30d1-4ea6-938d-dc9a342d0589)
+And you can obtain the average displacemnt of rubber in surface  
+> image will be uploaded later
 
-![step4-2](https://github.com/Adia0322/Stereo-digital-image-correlation/assets/89566671/28d3743d-f253-4a75-98fe-c38bcbc0a45b)
+> image will be uploaded later
 
-![step4-3](https://github.com/Adia0322/Stereo-digital-image-correlation/assets/89566671/2aa9bc97-2d30-4b7b-97e8-c984bd76c310)
+> image will be uploaded later
 
 ## Example Result
