@@ -36,6 +36,7 @@ session.free_show_image()
 session.get_reprojection_info()
 
 session.cfg.tranlation = (C1_B_x_ini - C2_B_x_ini)
+
 for ROW in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
     for COL in range(-pt_mat_len_half, pt_mat_len_half + 1, 1):
         row = ROW + pt_mat_len_half
