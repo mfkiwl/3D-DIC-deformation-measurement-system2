@@ -34,6 +34,8 @@ typedef struct DIC_ZNCC_context {
     double img_pt_ref_pos[2];                      // object point
     double img_pt_cur_pos[2];
     double *temp_subset;
+    double *ref_subset_zero_mean;
+    int margin;
 } DIC_ZNCC_context;
 
 typedef struct DIC_SSD_context {
