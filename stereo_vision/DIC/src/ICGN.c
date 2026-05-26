@@ -20,20 +20,31 @@ double get_bicubic_interp_value(double *img, int width, int height, double x, do
     double wx[4], wy[4];
 
     double dx = x - x0;
+    double dy = y - y0;
 
-    double t, cubic_x, cubic_x2, cubic_x3;
+    double dist, dist2, dist3;
     for (int i = -1; i <= 2; i++) {
-        t = dx - i;
-        cubic_x = fabs(t);
-        cubic_x2 = cubic_x * cubic_x;
-        cubic_x3 = cubic_x2 * cubic_x;
-
-        if (cubic_x < 1.0)
-            wx[i + 1] = (a + 2)*cubic_x3 - (a + 3)*cubic_x2 + 1;
-        else if (cubic_x < 2.0)
-            wx[i + 1] = a*cubic_x3 - 5*a*cubic_x2 + 8*a*cubic_x - 4*a;
+        dist        = fabs(dx - i);
+        dist2       = dist * dist;
+        dist3       = dist2 * dist;
+        if (dist < 1.0)
+            wx[i + 1] = (a + 2)*dist3 - (a + 3)*dist2 + 1;
+        else if (dist < 2.0)
+            wx[i + 1] = a*dist3 - 5*a*dist2 + 8*a*dist - 4*a;
         else
             wx[i + 1] = 0.0;
+    }
+
+    for (int j = -1; j <= 2; j++) {
+        dist        = fabs(dy - j);
+        dist2       = dist * dist;
+        dist3       = dist2 * dist;
+        if (dist < 1.0)
+            wy[j + 1] = (a + 2)*dist3 - (a + 3)*dist2 + 1;
+        else if (dist < 2.0)
+            wy[j + 1] = a*dist3 - 5*a*dist2 + 8*a*dist - 4*a;
+        else
+            wy[j + 1] = 0.0;
     }
 
     for (int m = -1; m <= 2; m++) {
