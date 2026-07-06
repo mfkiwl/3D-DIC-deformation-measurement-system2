@@ -101,7 +101,7 @@ def run_DIC_fine(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coar
               warp_inc_function_inv       = inverse_warp_func(delta_P)
               warp_function               = warp_function @ warp_inc_function_inv
               cnt += 1
-       print(f"cnt: {cnt}")       
+       # print(f"cnt: {cnt}")       
        end_ICGN = time.time()
        time_ICGN = end_ICGN - start_ICGN
        # print(f"time_ICGN: {time_ICGN:.5f}")

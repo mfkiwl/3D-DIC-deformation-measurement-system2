@@ -5,8 +5,10 @@ import numpy as np
 import cv2 as cv
 import glob
 import os
-import config as CF
-import config_user as CF_user
+from stereo_vision import config as CF
+from stereo_vision import config_user as CF_user
+
+os.makedirs(CF.BUILD_DIR, exist_ok=True)
 
 # 設定停止執行條件 (2種條件任一種滿足則停止)
 # 1.EPS:達到目標精確度(epsilon)則停止
@@ -28,8 +30,8 @@ imgpointsR = [] # 2d points in image plane.
 
 os.makedirs(CF.IMAGE_CAL_LEFT_DIR, exist_ok=True)
 os.makedirs(CF.IMAGE_CAL_RIGHT_DIR, exist_ok=True)
-image_Left = sorted(glob.glob(f"{CF.IMAGE_CAL_LEFT_DIR}*.jpg"))
-image_Right = sorted(glob.glob(f"{CF.IMAGE_CAL_RIGHT_DIR}*.jpg"))
+image_Left = sorted(glob.glob(os.path.join(CF.IMAGE_CAL_LEFT_DIR, "*.jpg")))
+image_Right = sorted(glob.glob(os.path.join(CF.IMAGE_CAL_RIGHT_DIR, "*.jpg")))
 
 for imgLeft, imgRight in zip(image_Left, image_Right): # zip: 將2組array中對應的元素打包成一個位組，最後傳回一個列表。
     imgL = cv.imread(imgLeft) # read image as array
