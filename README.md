@@ -21,9 +21,22 @@ It is designed for:
 ## Example:
 Below shows displacement measurement of a **deformed rubber surface with speckle pattern**:
 ## How to run:
-Requirements:
-* numpy
-* opencv-python
+* Create new venv
+```shell
+python -m venv venv
+.\venv\Scripts\Activate.ps1 # Activating
+```
+if it show error msg while Activating, run below command first:
+```shell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+```
+then try again.
+
+* Install Modules in venv:
+```shell
+pip install opencv-python
+pip install matplotlib
+```
 ### STEP1: capture checkerboard images (10 more)
 * Objection:   
 correct the two images to parallel to each others, make the result more precise  
@@ -66,7 +79,7 @@ python -m stereo_vision.apps.STEP2_StereoCalibration
 Run the following command from the project root directory (3D-DIC_measurement_system/):  
 * Build:
 ```shell
-mingw32-make all
+mingw32-make
 ```
 * Run 3D measurement
 ```shell
