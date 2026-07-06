@@ -66,7 +66,7 @@ python -m stereo_vision.apps.STEP2_StereoCalibration
 Run the following command from the project root directory (3D-DIC_measurement_system/):  
 * Build:
 ```shell
-mingw32-make
+mingw32-make all
 ```
 * Run 3D measurement
 ```shell
