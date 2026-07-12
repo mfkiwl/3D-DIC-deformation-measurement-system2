@@ -16,3 +16,5 @@ image
 *.dll
 
 *.xml
+
+*.lprof
