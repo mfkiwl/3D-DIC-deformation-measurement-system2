@@ -36,7 +36,7 @@ HEADERS_PSO          =      $(wildcard PSO/include/*.h) \
 
 SRCS_INTERP          =      $(wildcard tools/interpolation/src/cubic_interp.c)
 HEADERS_INTERP       =      $(wildcard tools/interpolation/include/*.h)
-SRCS_ICGN            =      $(wildcard DIC/src/ICGN.c)
+SRCS_ICGN            =      $(wildcard DIC/src/ICGN_subset_warping.c)
 HEADERS_ICGN         =      $(wildcard DIC/include/*.h)
 
 check:
