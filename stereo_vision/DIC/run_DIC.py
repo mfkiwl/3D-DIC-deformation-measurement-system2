@@ -1,10 +1,9 @@
 from enum import IntEnum
 import numpy as np
 from stereo_vision import config_user as CF_user
-import stereo_vision.DIC.python.common as dic_common
-import stereo_vision.DIC.python.DIC_ICGN as DIC_ICGN
-import stereo_vision.DIC.python.DIC_coarse_PSO as DIC_coarse_PSO
-import stereo_vision.DIC.python.DIC_coarse_lk_pyramid as DIC_coarse_lk_pyramid
+import stereo_vision.DIC.common as dic_common
+import stereo_vision.DIC.algo.DIC_ICGN as DIC_ICGN
+import stereo_vision.DIC.algo.DIC_coarse_PSO as DIC_coarse_PSO
 
 from copy import deepcopy
 from stereo_vision.config_DIC import (
@@ -108,7 +107,7 @@ def get_ref_sub(session, C1_B_x, C1_B_y):
 
 
 def run_DIC_coarse(session, dic_config):
-    coarse_x, coarse_y = DIC_coarse_lk_pyramid.run_lk_pyramid_core_single(session, dic_config)
+    # coarse_x, coarse_y = DIC_coarse_lk_pyramid.run_lk_pyramid_core_single(session, dic_config)
     return coarse_x, coarse_y
 
 

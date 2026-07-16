@@ -5,7 +5,7 @@ import ctypes
 import stereo_vision.config as CF
 from stereo_vision import config_user as CF_user
 from stereo_vision.config_DIC import DIC_config
-from stereo_vision.DIC.python.common import DIC_search_pt_type
+from stereo_vision.DIC.common import DIC_search_pt_type
 from ctypes import cdll, c_int, c_double, POINTER
 
 

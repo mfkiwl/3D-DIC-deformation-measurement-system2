@@ -3,12 +3,12 @@ print("\n<< Stereo_DIC_PSO_ICGN >>")
 import cv2 as cv
 import time
 from stereo_vision import config_user as CF_user
-from stereo_vision.DIC.python.DIC_session import create_session
+from stereo_vision.DIC.DIC_session import create_session
 from stereo_vision.tools.vision.src.click_tool import get_click_point
-import stereo_vision.DIC.python.run_DIC as run_dic
-import stereo_vision.DIC.python.DIC_init as dic_init
+import stereo_vision.DIC.run_DIC as run_dic
+import stereo_vision.DIC.DIC_init as dic_init
 
-from stereo_vision.DIC.python.DIC_session import (
+from stereo_vision.DIC.DIC_session import (
     DIC_user_config, create_session,
 )
 
