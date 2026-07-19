@@ -2,8 +2,8 @@ from enum import IntEnum
 import numpy as np
 from stereo_vision import config_user as CF_user
 import stereo_vision.DIC.common as dic_common
-import stereo_vision.DIC.algo.DIC_ICGN as DIC_ICGN
-import stereo_vision.DIC.algo.DIC_coarse_PSO as DIC_coarse_PSO
+import stereo_vision.DIC.algo.ICGN as DIC_ICGN
+import stereo_vision.DIC.algo.coarse_PSO as coarse_search
 
 from copy import deepcopy
 from stereo_vision.config_DIC import (
@@ -128,7 +128,7 @@ def run_dic_1B2B(session, row, col):
         J_1B1A,
         trans=session.cfg.tranlation
     )
-    coarse_x, coarse_y = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    coarse_x, coarse_y = coarse_search.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
     # coarse_x, coarse_y = run_DIC_coarse(session, dic_config)
     return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_1B2B, coarse_x, coarse_y)
 
@@ -139,7 +139,7 @@ def run_dic_1B1A(session, row, col):
     J_1B1A                  = session.dic_buf.J_1B_all[row][col][:][:][:]
     img_1B_sub              = session.dic_buf.img_1B_sub_zone[row][col]
     dic_config              = build_dic_cfg_1B1A(session, C1_B_x, C1_B_y, img_1B_sub, H_inv_1B1A, J_1B1A, trans=0)
-    coarse_x, coarse_y      = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    coarse_x, coarse_y      = coarse_search.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
     # coarse_x, coarse_y = run_DIC_coarse(session, dic_config)
     return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_1B1A, coarse_x, coarse_y)
 
@@ -150,6 +150,6 @@ def run_dic_2B2A(session, row, col):
     J_2B2A                  = session.dic_buf.J_2B_all[row][col][:][:][:]
     img_2B_sub              = session.dic_buf.img_2B_sub_zone[row][col]
     dic_config              = build_dic_cfg_2B2A(session, C2_B_x, C2_B_y, img_2B_sub, H_inv_2B2A, J_2B2A, trans=0)
-    coarse_x, coarse_y      = DIC_coarse_PSO.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
+    coarse_x, coarse_y      = coarse_search.run_PSO_core(dic_config, session.lib.PSO, session.pso_proc)
     # coarse_x, coarse_y = run_DIC_coarse(session, dic_config)
     return DIC_ICGN.run_DIC_fine(dic_config, session.lib.ICGN, session.icgn_proc_2B2A, coarse_x, coarse_y)

@@ -27,8 +27,7 @@ SRCS_PSO             =      $(wildcard PSO/src/core/PSO_core.c) \
                             $(wildcard PSO/src/interp/interpolation_core.c) \
                             $(wildcard PSO/src/system/sys_maneger.c) \
                             $(wildcard PSO/src/system/system_comm.c) \
-                            $(wildcard DIC/src/DIC_comm.c) \
-                            $(wildcard DIC/src/DIC_core.c)
+                            $(wildcard DIC/core.c)
 
 HEADERS_PSO          =      $(wildcard PSO/include/*.h) \
                             $(wildcard DIC/include/*.h) \
@@ -36,7 +35,7 @@ HEADERS_PSO          =      $(wildcard PSO/include/*.h) \
 
 SRCS_INTERP          =      $(wildcard tools/interpolation/src/cubic_interp.c)
 HEADERS_INTERP       =      $(wildcard tools/interpolation/include/*.h)
-SRCS_ICGN            =      $(wildcard DIC/src/ICGN_subset_warping.c)
+SRCS_ICGN            =      $(wildcard DIC/ICGN_subset_warping.c)
 HEADERS_ICGN         =      $(wildcard DIC/include/*.h)
 
 check:
