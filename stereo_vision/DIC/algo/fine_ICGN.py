@@ -1,4 +1,4 @@
-## ===== DIC (digital image correlation) ===== ##
+# ===== DIC (digital image correlation) ===== #
 import numpy as np
 import time
 import ctypes
@@ -6,8 +6,6 @@ import stereo_vision.config as CF
 from stereo_vision import config_user as CF_user
 from stereo_vision.config_DIC import DIC_config
 from stereo_vision.DIC.common import DIC_search_pt_type
-from ctypes import cdll, c_int, c_double, POINTER
-
 
 def inverse_warp_func(delta_P):
        a = 1 + delta_P[1]
@@ -32,12 +30,10 @@ def inverse_warp_func(delta_P):
 
        [0,0,1]
        ], dtype=np.float64)
-       return warp_inc_function_inv
-              
+       return warp_inc_function_inv     
 
 # @profile
-def run_DIC_fine(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coarse_dis_y):
-       
+def run_fine_ICGN(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coarse_dis_y):
        img_ref                                   = dic_config.dic_image.ref
        img_cur                                   = dic_config.dic_image.cur
        img_ref_x                                 = dic_config.img_ref_pt.pt_x
@@ -52,7 +48,6 @@ def run_DIC_fine(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coar
        img_ref_pt_x_guess = img_ref_x - translation if search_type == DIC_search_pt_type.initial else img_ref_x
        img_ref_pt_y_guess = img_ref_y
 
-       """ ===== ICGN ===== """
        ref_mat_f = subset_ref_data
        ref_mat_f_mean = np.mean(ref_mat_f)
        delta_f = np.std(ref_mat_f, ddof=0)
@@ -93,10 +88,6 @@ def run_DIC_fine(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coar
               limit = np.sqrt(np.square(delta_P[0]) + np.square(delta_P[1] * sub_len_h)+
                               np.square(delta_P[2] * sub_len_h) + np.square(delta_P[3])+
                               np.square(delta_P[4] * sub_len_h) + np.square(delta_P[5] * sub_len_h))
-
-              # warp_inc_function = np.array([[1+delta_P[1], delta_P[2], delta_P[0]],
-              #                              [delta_P[4], 1+delta_P[5], delta_P[3]],
-              #                              [0, 0, 1]], dtype=np.float64)
               
               warp_inc_function_inv       = inverse_warp_func(delta_P)
               warp_function               = warp_function @ warp_inc_function_inv
@@ -106,9 +97,9 @@ def run_DIC_fine(dic_config: DIC_config, lib_ICGN, ICGN_proc, coarse_dis_x, coar
        time_ICGN = end_ICGN - start_ICGN
        # print(f"time_ICGN: {time_ICGN:.5f}")
        
-       X = warp_function[0][2]
-       Y = warp_function[1][2]
+       local_x = warp_function[0][2]
+       local_y = warp_function[1][2]
        # print(f"(X,Y)=({X:.3f},{Y:.3f})")
-       img_cur_y = Y + img_ref_pt_y_guess
-       img_cur_x = X + img_ref_pt_x_guess
+       img_cur_y = local_y + img_ref_pt_y_guess
+       img_cur_x = local_x + img_ref_pt_x_guess
        return img_cur_x, img_cur_y

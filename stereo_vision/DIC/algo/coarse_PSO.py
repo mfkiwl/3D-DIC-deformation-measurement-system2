@@ -4,7 +4,7 @@ import ctypes
 from stereo_vision.DIC.common import DIC_search_pt_type
 from ctypes import c_double
 
-def run_PSO_core(dic_config: DIC_config, lib_PSO, PSO_proc):
+def run_PSO(dic_config: DIC_config, lib_PSO, PSO_proc):
     img_ref                                   = dic_config.dic_image.ref
     img_cur                                   = dic_config.dic_image.cur
     img_ref_x                                 = dic_config.img_ref_pt.pt_x
@@ -40,7 +40,7 @@ def run_PSO_core(dic_config: DIC_config, lib_PSO, PSO_proc):
             PSO_proc._cur_pt_ptr,
             PSO_proc._result_ptr
     )
-    PSO_dis_y, PSO_dis_x = PSO_proc._result_buf[0], PSO_proc._result_buf[1]
+    local_dis_y, local_dis_x = PSO_proc._result_buf[0], PSO_proc._result_buf[1]
 
-    return PSO_dis_x, PSO_dis_y
+    return local_dis_x, local_dis_y
         

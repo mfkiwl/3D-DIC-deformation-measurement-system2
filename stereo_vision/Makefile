@@ -23,11 +23,11 @@ TARGET_ICGN          =      build/$(OUTPUT_ICGN)
 # define all source (find .c)
 SRCS_PSO             =      $(wildcard PSO/src/core/PSO_core.c) \
                             $(wildcard PSO/src/core/PSO.c) \
+							$(wildcard PSO/src/core/ICGN_core.c) \
                             $(wildcard PSO/src/factory/PSO_factory.c) \
                             $(wildcard PSO/src/interp/interpolation_core.c) \
                             $(wildcard PSO/src/system/sys_maneger.c) \
                             $(wildcard PSO/src/system/system_comm.c) \
-                            $(wildcard DIC/core.c)
 
 HEADERS_PSO          =      $(wildcard PSO/include/*.h) \
                             $(wildcard DIC/include/*.h) \
