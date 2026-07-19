@@ -1,20 +1,16 @@
-
-
 # python cache
 __pycache__/
-*.pyc
-
 venv/
 env/
 bak/
 build/
+image/
 
+*.pyc
+*.dll
+*.xml
+*.lprof
 *.txt
 
-image
 
-*.dll
 
-*.xml
-
-*.lprof
